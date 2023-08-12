@@ -4,15 +4,25 @@
 
 package org.hyperledger.fabric.samples.assettransfer;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.Objects;
-
+import com.owlike.genson.Genson;
+import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
+// import org.hyperledger.fabric.protos.peer.ChaincodeGrpc.ChaincodeStub;
+import org.hyperledger.fabric.shim.Chaincode;
+import org.hyperledger.fabric.shim.ChaincodeStub;
+import org.hyperledger.fabric.shim.ledger.CompositeKey;
+import org.hyperledger.fabric.shim.ledger.KeyValue;
+import org.hyperledger.fabric.shim.ledger.QueryResultsIterator;
 
 import com.owlike.genson.annotation.JsonProperty;
 
 @DataType()
 public final class Asset {
+    private final Genson genson = new Genson();
 
     @Property()
     private final String assetID;
@@ -28,6 +38,9 @@ public final class Asset {
 
     @Property()
     private final int appraisedValue;
+
+    @Property()
+    private Owner ownerEntityLoaded;
 
     public String getAssetID() {
         return assetID;
@@ -49,6 +62,23 @@ public final class Asset {
         return appraisedValue;
     }
 
+    public Owner getOwner(final Context ctx) {
+        if (ownerEntityLoaded == null) {
+            ownerEntityLoaded = fetchOwnerData(ctx);
+        }
+        return ownerEntityLoaded;
+    }
+
+    public Owner fetchOwnerData(final Context ctx) {
+        ChaincodeStub stub = ctx.getStub();
+        CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(),ownerID); 
+        String ownerJSON = stub.getStringState(ownerKey.toString());
+
+        Owner owner = genson.deserialize(ownerJSON,Owner.class);
+        
+        return owner;
+    }
+
 
     public Asset(@JsonProperty("assetID") final String assetID, @JsonProperty("color") final String color,
             @JsonProperty("size") final int size, @JsonProperty("ownerID") final String ownerID,
@@ -57,6 +87,7 @@ public final class Asset {
         this.color = color;
         this.size = size;
         this.ownerID = ownerID;
+        this.ownerEntityLoaded = null;
         this.appraisedValue = appraisedValue;
     }
 

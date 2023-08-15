@@ -4,7 +4,6 @@
 
 package org.hyperledger.fabric.samples.assettransfer;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -34,11 +33,12 @@ public final class Owner {
     private final String lastName;
 
     @Property()
-    private final List<String> ownedAssetIDs;
+    private ArrayList<String> OwnedAssetIDs;
 
     @Property()
-    private boolean isDataLoaded;
-   
+    private String ownedAssets;
+
+    private ArrayList<Asset> OwnedAssetList = new ArrayList<Asset>();
 
     public String getOwnerID() {
         return ownerID;
@@ -52,62 +52,63 @@ public final class Owner {
         return lastName;
     }
 
-    public void AddAssetIDs (final String assetID) {
-        this.ownedAssetIDs.add(assetID);
+    public ArrayList<String> getIDsOfOwnedAssets() {
+        return OwnedAssetIDs;
+    }
+
+    public void addAssetIDs (final String assetID) {
+        this.OwnedAssetIDs.add(assetID);
     }
     
     public void RemoveAssetID(final String assetID) {
-        this.ownedAssetIDs.remove(assetID);
+        this.OwnedAssetIDs.remove(assetID);
     }
 
-    // public ArrayList<String> getIDsOfOwnedAssets() {
-    //     return ownedAssetIDs;
-    // }
-
-    public List<String> getOwnedAssetsOfOwner(final Context ctx) {
-        if (!this.isDataLoaded) {
-            fetchOwnedAssetsData(ctx);
-            isDataLoaded = true;
+    public String getOwnedAssetsOfOwner(final Context ctx) {
+        if (ownedAssets == null) {
+            ownedAssets = fetchOwnedAssetsData(ctx);
         }
-        return ownedAssetIDs;
+        return ownedAssets;
     }
 
-    private List<String> fetchOwnedAssetsData(Context ctx) {
+    private String fetchOwnedAssetsData(Context ctx) {
         ChaincodeStub stub = ctx.getStub();
-        // ArrayList<Asset> ownedAssets = new ArrayList<>();
-        
+       
         QueryResultsIterator<KeyValue> assetKeyValueIterator = stub.getStateByPartialCompositeKey(Asset.class.getSimpleName());
         for (KeyValue assetKeyValue: assetKeyValueIterator) {
             Asset asset = genson.deserialize(assetKeyValue.getStringValue(),Asset.class);
             if (asset.getOwnerID().equals(ownerID)) {
-                ownedAssetIDs.add(asset.getAssetID());
+                OwnedAssetList.add(asset);
             } else{
                 continue;
             }
             
         }
-        
-        return ownedAssetIDs;
+        String OwnedAssetsResponse = genson.serialize(OwnedAssetList);
+        return OwnedAssetsResponse;
     } 
 
     public Owner(final String ownerID, final String name, final String lastName) {
         this.ownerID = ownerID;
         this.name = name;
         this.lastName = lastName;
-        this.ownedAssetIDs = new ArrayList<String>();
-        this.isDataLoaded = false;
+        this.OwnedAssetIDs = new ArrayList<String>();
+        this.ownedAssets = null;
+        
         
     }
 
     public Owner(@JsonProperty("ownerID") final String ownerID, @JsonProperty("name") final String name,
-            @JsonProperty("lastName") final String lastName, @JsonProperty("iDsOfOwnedAssets") final ArrayList<String> ownedAssetIDs) {
+            @JsonProperty("lastName") final String lastName, @JsonProperty("iDsOfOwnedAssets") ArrayList<String> OwnedAssetIDs,
+            @JsonProperty("ownedAssets") String ownedAssets) {
         this.ownerID = ownerID;
         this.name = name;
         this.lastName = lastName;
-        this.ownedAssetIDs = ownedAssetIDs;
-        this.isDataLoaded = true;
+        this.OwnedAssetIDs = OwnedAssetIDs;
+        this.ownedAssets = null; 
         
     }
+
 
     @Override
     public boolean equals(final Object obj) {
@@ -124,8 +125,8 @@ public final class Owner {
         return Objects.deepEquals(
                 new String[] {getOwnerID(), getName(), getLastName()},
                 new String[] {other.getOwnerID(), other.getName(), other.getLastName()})
-                // &&
-                // Objects.deepEquals(getIDsOfOwnedAssets(), other.getIDsOfOwnedAssets())
+                &&
+                Objects.deepEquals(getIDsOfOwnedAssets(), other.getIDsOfOwnedAssets())
                 &&
                 Objects.deepEquals(getOwnedAssetsOfOwner(null), other.getOwnedAssetsOfOwner(null));
                 
@@ -141,6 +142,6 @@ public final class Owner {
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + "@" + Integer.toHexString(hashCode()) + " [ownerID=" + ownerID + ", name="
-                + name + ", lastName=" + lastName + ", iDsOfOwnedAssets=" + ownedAssetIDs + "]";
+                + name + ", lastName=" + lastName + ", iDsOfOwnedAssets=" + OwnedAssetIDs + ", ownedAssets=" + ownedAssets + "]";
     }
 }

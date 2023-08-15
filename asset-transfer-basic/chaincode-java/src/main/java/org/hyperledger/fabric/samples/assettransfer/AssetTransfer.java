@@ -66,14 +66,16 @@ public final class AssetTransfer implements ContractInterface {
         Asset asset = new Asset("asset1", "blue", 5, "Tomoko1", 300);
         String assetJson1 = genson.serialize(asset);
 
-        Owner owner = new Owner("Tomoko1", "Tomoko","Roy");      
+        Owner owner = new Owner("Tomoko1", "Tomoko","Roy");  
+        owner.addAssetIDs(asset.getAssetID());  
         String ownerJson1 = genson.serialize(owner); 
 
         CompositeKey assetCompositeKey = stub.createCompositeKey(Asset.class.getSimpleName(),asset.getAssetID());
         stub.putStringState(assetCompositeKey.toString(), assetJson1);          
         CompositeKey ownerCompositeKey = stub.createCompositeKey(Owner.class.getSimpleName(),owner.getOwnerID());
         stub.putStringState(ownerCompositeKey.toString(), ownerJson1);
-         
+        
+
     }
 
     /**
@@ -92,7 +94,9 @@ public final class AssetTransfer implements ContractInterface {
         ChaincodeStub stub = ctx.getStub();
 
         if (!OwnerExists(ctx, ownerID)) {
-            throw new ChaincodeException("Owner does not exists.");
+            String errorMessage = String.format("Owner does not exists.", ownerID);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
         }
 
         if (AssetExists(ctx, assetID)) {
@@ -102,23 +106,23 @@ public final class AssetTransfer implements ContractInterface {
         } 
 
         Asset asset = new Asset(assetID, color, size, ownerID, appraisedValue);
+        asset.AddAssetIdToOwner(ctx);
         String sortedJson = genson.serialize(asset);
         CompositeKey assetCompositeKey = stub.createCompositeKey(Asset.class.getSimpleName(),assetID);
     
         stub.putStringState(assetCompositeKey.toString(), sortedJson);       
-
+        
         return asset;
     }
 
 
 
     /**
-     * 
-     * @param ctx
-     * @param ownerID
-     * @param firstName
-     * @param lastName
-     * @return
+     @param ctx
+     @param ownerID
+     @param firstName
+     @param lastName
+     @return
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public Owner CreateOwner(final Context ctx, final String ownerID, final String firstName, final String lastName) {
@@ -161,17 +165,17 @@ public final class AssetTransfer implements ContractInterface {
     }
 
     /**
-
-     * @param ctx 
-     * @param ownerID 
-     * @return 
+     @param ctx 
+     @param ownerID 
+     @return 
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public Owner ReadOwner(final Context ctx, final String ownerID) {
+    public String ReadOwner(final Context ctx, final String ownerID) {
         ChaincodeStub stub = ctx.getStub();
         
         if (!OwnerExists(ctx, ownerID)) {
-            String errorMessage = "Owner does not exist";
+            String errorMessage = String.format("Owner %s does not exists", ownerID);
+            System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
         }
         
@@ -179,18 +183,18 @@ public final class AssetTransfer implements ContractInterface {
         String ownerJSON = stub.getStringState(ownerKey.toString());
         Owner owner = genson.deserialize(ownerJSON,Owner.class);
         
-        return owner;
+        return ownerJSON;
         
     }
 
     /**
-     * @param ctx 
-     * @param assetID 
-     * @param color 
-     * @param size 
-     * @param ownerID 
-     * @param appraisedValue 
-     * @return 
+     @param ctx 
+     @param assetID 
+     @param color 
+     @param size 
+     @param ownerID 
+     @param appraisedValue 
+     @return 
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public Asset UpdateAsset(final Context ctx, final String assetID, final String color, final int size,
@@ -204,7 +208,6 @@ public final class AssetTransfer implements ContractInterface {
         }
 
         Asset newAsset = new Asset(assetID, color, size, ownerID, appraisedValue);
-        
         String sortedJson = genson.serialize(newAsset);
         CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(),assetID);
         stub.putStringState(assetKey.toString(), sortedJson);
@@ -212,9 +215,8 @@ public final class AssetTransfer implements ContractInterface {
     }
 
     /**
-     *
-     * @param ctx 
-     * @param assetID 
+     @param ctx 
+     @param assetID 
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public String DeleteAsset(final Context ctx, final String assetID) {
@@ -227,16 +229,20 @@ public final class AssetTransfer implements ContractInterface {
         }
 
         CompositeKey CompositeAssetKeyToBeDeleted = stub.createCompositeKey(Asset.class.getSimpleName(),assetID);
+        String assetJSON = stub.getStringState(CompositeAssetKeyToBeDeleted.toString());
+
+        Asset asset = genson.deserialize(assetJSON,Asset.class);
+        asset.RemoveAssetIdFromOwner(ctx);
 
         stub.delState(CompositeAssetKeyToBeDeleted.toString());
-        return "Deleted asset with assetID " + assetID;
+        String ResponeMessage = String.format("Deleted asset with assetID %s ", assetID);
+        return  ResponeMessage;
     }
 
     /**
-     *
-     * @param ctx 
-     * @param assetID 
-     * @return 
+     @param ctx 
+     @param assetID 
+     @return 
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public boolean AssetExists(final Context ctx, final String assetID) {
@@ -248,10 +254,9 @@ public final class AssetTransfer implements ContractInterface {
     }
 
     /**
-     *
-     * @param ctx 
-     * @param ownerID 
-     * @return 
+     @param ctx 
+     @param ownerID 
+     @return 
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public boolean OwnerExists(final Context ctx, final String ownerID) {
@@ -263,17 +268,17 @@ public final class AssetTransfer implements ContractInterface {
     }
 
     /**
-     *
-     * @param ctx 
-     * @param assetID 
-     * @param newOwner 
-     * @return 
+      @param ctx 
+      @param assetID 
+      @param newOwner 
+      @return 
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public String TransferAsset(final Context ctx, final String assetID, final String newOwner) {
         ChaincodeStub stub = ctx.getStub();
         if (!OwnerExists(ctx, newOwner)) {
-            String errorMessage = "Owner does not exist";
+            String errorMessage = String.format("Owner %s does not exist", newOwner);
+            System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
         }
 
@@ -285,12 +290,15 @@ public final class AssetTransfer implements ContractInterface {
         CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(), assetID);
         String assetJSON = stub.getStringState(assetKey.toString());
         Asset asset = genson.deserialize(assetJSON, Asset.class);
+        asset.RemoveAssetIdFromOwner(ctx);
 
         Asset newAsset = new Asset(asset.getAssetID(), asset.getColor(), asset.getSize(), newOwner, asset.getAppraisedValue());
-        
+        newAsset.AddAssetIdToOwner(ctx);
+
         String newAssetJSON = genson.serialize(newAsset);
         stub.putStringState(assetKey.toString(), newAssetJSON);
-        return "Ownership transfrred of asset " + assetID;
+        String ResponseMessage = String.format("Ownership transfrred of asset %s", assetID);
+        return ResponseMessage;
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE)
@@ -306,44 +314,18 @@ public final class AssetTransfer implements ContractInterface {
         String assetJSON = stub.getStringState(assetKey.toString());
 
         Asset asset = genson.deserialize(assetJSON, Asset.class);
-
-
         return asset.getOwner(ctx);
         
     }
 
     /**
-     *
-     * @param ctx 
-     * @return 
-     */
-    // @Transaction(intent = Transaction.TYPE.EVALUATE)
-    // public String GetAllAssets(final Context ctx) {
-    //     ChaincodeStub stub = ctx.getStub();
-    //     List<String> queryResults = new ArrayList<String>();
-
-    //     QueryResultsIterator<KeyValue> results = stub.getStateByPartialCompositeKey(Owner.class.getSimpleName());
-        
-    //     for (KeyValue result: results) {
-    //         Owner owner = genson.deserialize(result.getStringValue(),Owner.class);
-    //         queryResults.add(genson.serialize(owner.getOwnedAssetsOfOwner()));
-    //     }
-
-    //     final String response = genson.serialize(queryResults);
-
-    //     return response;
- 
-    // }
-
-    /**
-     *
-     * @param ctx 
-     * @return 
+      @param ctx 
+      @return 
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String GetAllAssetsOfOwnerString(final Context ctx, final String ownerID) {
+    public String GetAllAssetsOfOwner(final Context ctx, final String ownerID) {
         ChaincodeStub stub = ctx.getStub();
-        // List<Asset> ownedAssets = new ArrayList<Asset>();
+        
         if (!OwnerExists(ctx, ownerID)) {
             throw new ChaincodeException("Owner does not exists.");
         }
@@ -351,32 +333,31 @@ public final class AssetTransfer implements ContractInterface {
         CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(),ownerID);
         String ownerJSON = stub.getStringState(ownerKey.toString());
 
-        Owner owner = genson.deserialize(ownerJSON, Owner.class);
-        
-        return " and " + ownerJSON;
-        
-    }
-
-    /**
-     *
-     * @param ctx 
-     * @return 
-     */
-    @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public List<String> GetAllAssetsOfOwner(final Context ctx, final String ownerID) {
-        ChaincodeStub stub = ctx.getStub();
-        // List<Asset> ownedAssets = new ArrayList<Asset>();
-        if (!OwnerExists(ctx, ownerID)) {
-            throw new ChaincodeException("Owner does not exists.");
-        }
-
-        CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(),ownerID);
-        String ownerJSON = stub.getStringState(ownerKey.toString());
-
-        Owner owner = genson.deserialize(ownerJSON, Owner.class);
-        
+        Owner owner = genson.deserialize(ownerJSON, Owner.class);        
         return owner.getOwnedAssetsOfOwner(ctx);
         
+    }
+    /**
+     @param ctx 
+     @return 
+     */
+    @Transaction(intent = Transaction.TYPE.EVALUATE)
+    public String GetAllAssetIDs(final Context ctx) {
+        ChaincodeStub stub = ctx.getStub();
+        Map<String,ArrayList<String>> resultMapping = new HashMap<String,ArrayList<String>>();
+
+        QueryResultsIterator<KeyValue> ownerEntities = stub.getStateByPartialCompositeKey(Owner.class.getSimpleName());
+
+        for (KeyValue ownerKeyValue: ownerEntities) {
+            Owner owner = genson.deserialize(ownerKeyValue.getStringValue(),Owner.class);
+            resultMapping.put(owner.getOwnerID() , owner.getIDsOfOwnedAssets());
+
+        }
+
+        final String response = genson.serialize(resultMapping);
+
+        return response;
+ 
     }
 
 }

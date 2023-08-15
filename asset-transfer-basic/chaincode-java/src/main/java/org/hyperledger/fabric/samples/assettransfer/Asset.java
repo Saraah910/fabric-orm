@@ -58,6 +58,24 @@ public final class Asset {
         return ownerID;
     }
 
+    public void AddAssetIdToOwner(final Context ctx) {
+        ChaincodeStub stub = ctx.getStub();
+        CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(),ownerID);
+        Owner owner = genson.deserialize(stub.getStringState(ownerKey.toString()),Owner.class);
+        owner.addAssetIDs(assetID);
+        String ownerJSON = genson.serialize(owner);
+        stub.putStringState(ownerKey.toString(), ownerJSON);
+    }
+
+    public void RemoveAssetIdFromOwner(final Context ctx) {
+        ChaincodeStub stub = ctx.getStub();
+        CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(),ownerID);
+        Owner owner = genson.deserialize(stub.getStringState(ownerKey.toString()),Owner.class);
+        owner.RemoveAssetID(assetID);
+        String ownerJSON = genson.serialize(owner);
+        stub.putStringState(ownerKey.toString(), ownerJSON);
+    }
+
     public int getAppraisedValue() {
         return appraisedValue;
     }

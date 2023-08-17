@@ -197,9 +197,15 @@ public final class AssetTransfer implements ContractInterface {
      @return 
      */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public Asset UpdateAsset(final Context ctx, final String assetID, final String color, final int size,
+    public Asset UpdateAsset(final Context ctx, final String assetID, final String color, final int size, 
         final String ownerID, final int appraisedValue) {
         ChaincodeStub stub = ctx.getStub();
+
+        if (!OwnerExists(ctx, ownerID)) {
+            String errorMessage = String.format("Owner %s does not exists", ownerID);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
+        }
 
         if (!AssetExists(ctx, assetID)) {
             String errorMessage = String.format("Asset %s does not exist", assetID);
@@ -207,10 +213,19 @@ public final class AssetTransfer implements ContractInterface {
             throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
         }
 
+        CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(),assetID);
+        String assetJSON = stub.getStringState(assetKey.toString());
+
+        Asset asset = genson.deserialize(assetJSON,Asset.class);
+        if (!asset.getOwnerID().equals(ownerID)) {
+            String errorMessage = "Ownership cannot be updated.";
+            throw new ChaincodeException(errorMessage);
+        } 
+
         Asset newAsset = new Asset(assetID, color, size, ownerID, appraisedValue);
         String sortedJson = genson.serialize(newAsset);
-        CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(),assetID);
         stub.putStringState(assetKey.toString(), sortedJson);
+
         return newAsset;
     }
 

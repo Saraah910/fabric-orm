@@ -170,7 +170,7 @@ public final class AssetTransfer implements ContractInterface {
      @return 
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String ReadOwner(final Context ctx, final String ownerID) {
+    public Owner ReadOwner(final Context ctx, final String ownerID) {
         ChaincodeStub stub = ctx.getStub();
         
         if (!OwnerExists(ctx, ownerID)) {
@@ -183,7 +183,7 @@ public final class AssetTransfer implements ContractInterface {
         String ownerJSON = stub.getStringState(ownerKey.toString());
         Owner owner = genson.deserialize(ownerJSON,Owner.class);
         
-        return ownerJSON;
+        return owner;
         
     }
 

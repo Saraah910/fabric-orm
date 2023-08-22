@@ -12,6 +12,7 @@ import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 // import org.hyperledger.fabric.protos.peer.Chaincode;
 import org.hyperledger.fabric.shim.ChaincodeStub;
+import org.hyperledger.fabric.shim.ledger.CompositeKey;
 import org.hyperledger.fabric.shim.ledger.KeyValue;
 import org.hyperledger.fabric.shim.ledger.QueryResultsIterator;
 
@@ -74,16 +75,14 @@ public final class Owner {
     private String fetchOwnedAssetsData(Context ctx) {
         ChaincodeStub stub = ctx.getStub();
        
-        QueryResultsIterator<KeyValue> assetKeyValueIterator = stub.getStateByPartialCompositeKey(Asset.class.getSimpleName());
-        for (KeyValue assetKeyValue: assetKeyValueIterator) {
-            Asset asset = genson.deserialize(assetKeyValue.getStringValue(),Asset.class);
-            if (asset.getOwnerID().equals(ownerID)) {
-                OwnedAssetList.add(asset);
-            } else{
-                continue;
-            }
-            
+        for (String assetID: OwnedAssetIDs) {
+            CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(),assetID);
+            String assetJSON = stub.getStringState(assetKey.toString());
+
+            Asset asset = genson.deserialize(assetJSON,Asset.class);
+            OwnedAssetList.add(asset);
         }
+        
         String OwnedAssetsResponse = genson.serialize(OwnedAssetList);
         return OwnedAssetsResponse;
     } 
@@ -129,9 +128,7 @@ public final class Owner {
                 Objects.deepEquals(getIDsOfOwnedAssets(), other.getIDsOfOwnedAssets())
                 &&
                 Objects.deepEquals(getOwnedAssetsOfOwner(null), other.getOwnedAssetsOfOwner(null));
-                
-                
-                
+        
     }
 
     @Override

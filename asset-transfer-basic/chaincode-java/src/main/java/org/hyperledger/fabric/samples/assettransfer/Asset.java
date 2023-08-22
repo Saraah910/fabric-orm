@@ -40,7 +40,7 @@ public final class Asset {
     private final int appraisedValue;
 
     @Property()
-    private Owner ownerEntityLoaded;
+    private Owner owner;
 
     public String getAssetID() {
         return assetID;
@@ -81,10 +81,10 @@ public final class Asset {
     }
 
     public Owner getOwner(final Context ctx) {
-        if (ownerEntityLoaded == null) {
-            ownerEntityLoaded = fetchOwnerData(ctx);
+        if (owner == null) {
+            owner = fetchOwnerData(ctx);
         }
-        return ownerEntityLoaded;
+        return owner;
     }
 
     public Owner fetchOwnerData(final Context ctx) {
@@ -105,7 +105,7 @@ public final class Asset {
         this.color = color;
         this.size = size;
         this.ownerID = ownerID;
-        this.ownerEntityLoaded = null;
+        this.owner = null;
         this.appraisedValue = appraisedValue;
     }
 

@@ -95,8 +95,7 @@ public final class Owner {
         this.name = name;
         this.lastName = lastName;
         this.OwnedAssetIDs = OwnedAssetIDs;
-        this.ownedAssets = null; 
-        
+        this.ownedAssets = null;        
     }
 
 
@@ -119,8 +118,7 @@ public final class Owner {
                 Objects.deepEquals(getIDsOfOwnedAssets(), other.getIDsOfOwnedAssets())
                 &&
                 Objects.deepEquals(getOwnedAssetsOfOwner(null), other.getOwnedAssetsOfOwner(null));
-                            
-                
+                                           
     }
 
     @Override

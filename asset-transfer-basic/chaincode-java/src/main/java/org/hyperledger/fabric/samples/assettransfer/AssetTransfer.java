@@ -250,6 +250,23 @@ public final class AssetTransfer implements ContractInterface {
     }
 
     /**
+     @param ctx
+     @param assetID
+     @param newOwner
+     @return
+     */
+    @Transaction(intent = Transaction.TYPE.EVALUATE)
+    public boolean AlreadyOwningAsset(final Context ctx, final String assetID, final String newOwner) {
+        ChaincodeStub stub = ctx.getStub();
+
+        CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(),newOwner);
+        Owner owner = genson.deserialize(stub.getStringState(ownerKey.toString()), Owner.class);
+        ArrayList<String> result = owner.getIDsOfOwnedAssets();
+
+        return (result.contains(assetID));
+    }
+
+    /**
       @param ctx 
       @param assetID 
       @param newOwner 

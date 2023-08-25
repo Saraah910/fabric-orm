@@ -30,6 +30,10 @@ public final class Asset {
     @Property()
     private Owner owner;
 
+    public void setAssetID(String assetID) {
+        this.assetID = assetID;
+    }
+
     public void setColor(String color) {
         this.color = color;
     }
@@ -67,19 +71,10 @@ public final class Asset {
     }
 
     public Owner getOwner(final Context ctx) {
+        EntityManager manager = new EntityManager(ctx);
         if (owner == null) {
-            owner = fetchOwnerData(ctx);
+            owner = manager.loadOwnerFromLedger(ownerID);
         }
-        return owner;
-    }
-
-    public Owner fetchOwnerData(final Context ctx) {
-        ChaincodeStub stub = ctx.getStub();
-        CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(),ownerID); 
-        String ownerJSON = stub.getStringState(ownerKey.toString());
-
-        Owner owner = genson.deserialize(ownerJSON,Owner.class);
-        
         return owner;
     }
 

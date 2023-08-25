@@ -5,32 +5,25 @@
 package org.hyperledger.fabric.samples.assettransfer;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import com.owlike.genson.Genson;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
-// import org.hyperledger.fabric.protos.peer.Chaincode;
-import org.hyperledger.fabric.shim.ChaincodeStub;
-import org.hyperledger.fabric.shim.ledger.KeyValue;
-import org.hyperledger.fabric.shim.ledger.QueryResultsIterator;
-
 import com.owlike.genson.annotation.JsonProperty;
 import org.hyperledger.fabric.contract.Context;
 
 @DataType()
 public final class Owner {
-
     private final Genson genson = new Genson();
 
     @Property()
-    private final String ownerID;
+    private String ownerID;
 
     @Property()
-    private final String name;
+    private String name;
 
     @Property()
-    private final String lastName;
+    private String lastName;
 
     @Property()
     private ArrayList<String> OwnedAssetIDs;
@@ -56,12 +49,16 @@ public final class Owner {
         return OwnedAssetIDs;
     }
 
+    public void setOwnerID(String ownerID) {
+        this.ownerID = ownerID;
+    }
+
     public void addAssetIDs (final String assetID) {
         this.OwnedAssetIDs.add(assetID);
     }
     
     public void RemoveAssetID(final String assetID) {
-        this.OwnedAssetIDs.remove(assetID);
+        this.OwnedAssetIDs.remove(assetID);        
     }
 
     public String getOwnedAssetsOfOwner(final Context ctx) {
@@ -72,18 +69,12 @@ public final class Owner {
     }
 
     private String fetchOwnedAssetsData(Context ctx) {
-        ChaincodeStub stub = ctx.getStub();
+        EntityManager manager = new EntityManager(ctx);
        
-        QueryResultsIterator<KeyValue> assetKeyValueIterator = stub.getStateByPartialCompositeKey(Asset.class.getSimpleName());
-        for (KeyValue assetKeyValue: assetKeyValueIterator) {
-            Asset asset = genson.deserialize(assetKeyValue.getStringValue(),Asset.class);
-            if (asset.getOwnerID().equals(ownerID)) {
-                OwnedAssetList.add(asset);
-            } else{
-                continue;
-            }
-            
-        }
+        for (String assetID: OwnedAssetIDs) {
+            Asset asset = manager.loadAssetFromLedger(assetID);
+            OwnedAssetList.add(asset);
+        }        
         String OwnedAssetsResponse = genson.serialize(OwnedAssetList);
         return OwnedAssetsResponse;
     } 
@@ -94,8 +85,7 @@ public final class Owner {
         this.lastName = lastName;
         this.OwnedAssetIDs = new ArrayList<String>();
         this.ownedAssets = null;
-        
-        
+    
     }
 
     public Owner(@JsonProperty("ownerID") final String ownerID, @JsonProperty("name") final String name,
@@ -129,8 +119,7 @@ public final class Owner {
                 Objects.deepEquals(getIDsOfOwnedAssets(), other.getIDsOfOwnedAssets())
                 &&
                 Objects.deepEquals(getOwnedAssetsOfOwner(null), other.getOwnedAssetsOfOwner(null));
-                
-                
+                            
                 
     }
 
@@ -144,4 +133,5 @@ public final class Owner {
         return this.getClass().getSimpleName() + "@" + Integer.toHexString(hashCode()) + " [ownerID=" + ownerID + ", name="
                 + name + ", lastName=" + lastName + ", iDsOfOwnedAssets=" + OwnedAssetIDs + ", ownedAssets=" + ownedAssets + "]";
     }
+
 }

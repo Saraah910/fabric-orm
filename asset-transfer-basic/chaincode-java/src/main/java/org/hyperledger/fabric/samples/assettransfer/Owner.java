@@ -13,8 +13,14 @@ import com.owlike.genson.annotation.JsonProperty;
 import org.hyperledger.fabric.contract.Context;
 
 @DataType()
-public final class Owner {
+public final class Owner implements EntityBase{
     private final Genson genson = new Genson();
+    transient private EntityManager entityManager;
+
+    @Override
+    public void setEntityManager(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     @Property()
     private String ownerID;
@@ -29,7 +35,7 @@ public final class Owner {
     private ArrayList<String> OwnedAssetIDs;
 
     @Property()
-    private String ownedAssets;
+    private ArrayList<Asset> ownedAssets;
 
     private ArrayList<Asset> OwnedAssetList = new ArrayList<Asset>();
 
@@ -61,43 +67,35 @@ public final class Owner {
         this.OwnedAssetIDs.remove(assetID);        
     }
 
-    public String getOwnedAssetsOfOwner(final Context ctx) {
+    public ArrayList<Asset> getOwnedAssetsOfOwner(final EntityContext ctx) {
+        EntityManager manager = ctx.getEntityManager();
         if (ownedAssets == null) {
-            ownedAssets = fetchOwnedAssetsData(ctx);
-        }
-        return ownedAssets;
+            for (String assetID : OwnedAssetIDs) {
+                Asset asset = manager.loadAssetFromLedger(assetID);
+                OwnedAssetList.add(asset);
+            }
+        } 
+        ownedAssets = OwnedAssetList;      
+        return ownedAssets;        
     }
-
-    private String fetchOwnedAssetsData(Context ctx) {
-        EntityManager manager = new EntityManager(ctx);
-       
-        for (String assetID: OwnedAssetIDs) {
-            Asset asset = manager.loadAssetFromLedger(assetID);
-            OwnedAssetList.add(asset);
-        }        
-        String OwnedAssetsResponse = genson.serialize(OwnedAssetList);
-        return OwnedAssetsResponse;
-    } 
 
     public Owner(final String ownerID, final String name, final String lastName) {
         this.ownerID = ownerID;
         this.name = name;
         this.lastName = lastName;
         this.OwnedAssetIDs = new ArrayList<String>();
-        this.ownedAssets = null;
-    
+        this.ownedAssets = null;    
     }
 
     public Owner(@JsonProperty("ownerID") final String ownerID, @JsonProperty("name") final String name,
             @JsonProperty("lastName") final String lastName, @JsonProperty("iDsOfOwnedAssets") ArrayList<String> OwnedAssetIDs,
-            @JsonProperty("ownedAssets") String ownedAssets) {
+            @JsonProperty("ownedAssets") ArrayList<Asset> ownedAssets) {
         this.ownerID = ownerID;
         this.name = name;
         this.lastName = lastName;
         this.OwnedAssetIDs = OwnedAssetIDs;
-        this.ownedAssets = null;        
+        this.ownedAssets = null;         
     }
-
 
     @Override
     public boolean equals(final Object obj) {
@@ -118,7 +116,8 @@ public final class Owner {
                 Objects.deepEquals(getIDsOfOwnedAssets(), other.getIDsOfOwnedAssets())
                 &&
                 Objects.deepEquals(getOwnedAssetsOfOwner(null), other.getOwnedAssetsOfOwner(null));
-                                           
+                            
+                
     }
 
     @Override

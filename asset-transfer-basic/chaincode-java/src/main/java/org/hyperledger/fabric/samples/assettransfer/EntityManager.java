@@ -67,8 +67,8 @@ public class EntityManager {
         stub.putStringState(newOwnerkey.toString(), newOwnerJSON);
     }
 
-    public EntityManager(Context ctx) {
-        this.stub = ctx.getStub();
+    public EntityManager(ChaincodeStub stub2) {
+        this.stub = stub2;
     }
 
 }

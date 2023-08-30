@@ -10,7 +10,14 @@ import org.hyperledger.fabric.contract.annotation.Property;
 import com.owlike.genson.annotation.JsonProperty;
 
 @DataType()
-public final class Asset {
+public final class Asset implements EntityBase{
+
+    transient private EntityManager entityManager;
+
+    @Override
+    public void setEntityManager(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
     
     @Property()
     private String assetID;
@@ -70,8 +77,8 @@ public final class Asset {
         return appraisedValue;
     }
 
-    public Owner getOwner(final Context ctx) {
-        EntityManager manager = new EntityManager(ctx);
+    public Owner getOwner(final EntityContext ctx) {
+        EntityManager manager = ctx.getEntityManager();
         if (owner == null) {
             owner = manager.loadOwnerFromLedger(ownerID);
         }
@@ -87,6 +94,7 @@ public final class Asset {
         this.ownerID = ownerID;
         this.owner = null;
         this.appraisedValue = appraisedValue;
+        
     }
 
     @Override

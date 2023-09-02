@@ -58,8 +58,8 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void InitLedger(final EntityContext ctx) {
         EntityManager manager = ctx.getEntityManager();
-
         Asset asset = new Asset("asset1", "blue", 5, "Tomoko1", 300);
+        
         Owner owner = new Owner("Tomoko1", "Tomoko","Roy");  
         owner.addAssetIDs(asset.getAssetID());   
         
@@ -80,19 +80,20 @@ public final class AssetTransfer implements ContractInterface {
     public Asset CreateNewAsset(final EntityContext ctx, final String assetID, final String color, final int size,
         final String ownerID, final int appraisedValue) {
         EntityManager manager = ctx.getEntityManager();
-
-        if (!OwnerExists(ctx, ownerID)) {
+        
+        if (!manager.OwnerExists(ownerID)) {
             String errorMessage = String.format("Owner does not exists.", ownerID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
         }
-        if (AssetExists(ctx, assetID)) {
+        if (manager.AssetExists(assetID)) {
             String errorMessage = String.format("Asset %s already exists", assetID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_ALREADY_EXISTS.toString());
         } 
         Asset asset = new Asset(assetID, color, size, ownerID, appraisedValue);
         Owner owner = asset.getOwner(ctx);
+
         owner.addAssetIDs(assetID);
 
         manager.saveAssetToLedger(asset); 
@@ -110,12 +111,12 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public Owner CreateOwner(final EntityContext ctx, final String ownerID, final String firstName, final String lastName) {
         EntityManager manager = ctx.getEntityManager();
-        if (OwnerExists(ctx, ownerID)) {
+        if (manager.OwnerExists(ownerID)) {
             String errorMessage = String.format("Owner %s already exists", ownerID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_ALREADY_EXISTS.toString());
         }       
-        Owner owner = new Owner(ownerID, firstName, lastName);       
+        Owner owner = new Owner(ownerID, firstName, lastName);      
         manager.saveOwnerToLedger(owner);
         return owner;
     }
@@ -128,7 +129,7 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public Asset ReadAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();
-        if (!AssetExists(ctx, assetID)) {
+        if (!manager.AssetExists(assetID)) {
             String errorMessage = String.format("Asset %s does not exist", assetID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
@@ -145,7 +146,7 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public Owner ReadOwner(final EntityContext ctx, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();       
-        if (!OwnerExists(ctx, ownerID)) {
+        if (!manager.OwnerExists(ownerID)) {
             String errorMessage = String.format("Owner %s does not exists", ownerID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
@@ -167,12 +168,12 @@ public final class AssetTransfer implements ContractInterface {
     public Asset UpdateAsset(final EntityContext ctx, final String assetID, final String color, final int size, 
         final String ownerID, final int appraisedValue) {
         EntityManager manager = ctx.getEntityManager();
-        if (!OwnerExists(ctx, ownerID)) {
+        if (!manager.OwnerExists(ownerID)) {
             String errorMessage = String.format("Owner %s does not exists", ownerID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
         }
-        if (!AssetExists(ctx, assetID)) {
+        if (!manager.AssetExists(assetID)) {
             String errorMessage = String.format("Asset %s does not exist", assetID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
@@ -187,7 +188,6 @@ public final class AssetTransfer implements ContractInterface {
         asset.setColor(color);
         asset.setSize(size);
         asset.setAppraisedValue(appraisedValue);
-
         manager.saveAssetToLedger(asset);
         return asset;
     }
@@ -199,7 +199,7 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public String DeleteAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();
-        if (!AssetExists(ctx, assetID)) {
+        if (!manager.AssetExists(assetID)) {
             String errorMessage = String.format("Asset %s does not exist", assetID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
@@ -208,50 +208,6 @@ public final class AssetTransfer implements ContractInterface {
         String ResponeMessage = String.format("Deleted asset with ID %s ", assetID);
         return ResponeMessage;
     }    
-    /**
-     @param ctx 
-     @param assetID 
-     @return 
-     */
-    @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public boolean AssetExists(final EntityContext ctx, final String assetID) {
-        EntityManager manager = ctx.getEntityManager();
-        Asset asset = manager.loadAssetFromLedger(assetID);
-        try {
-            return (asset.getAssetID() != null);
-        } catch (Exception error) {
-            return false;
-        }        
-    }
-    /**
-     @param ctx 
-     @param ownerID 
-     @return 
-     */
-    @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public boolean OwnerExists(final EntityContext ctx, final String ownerID) {
-        EntityManager manager = ctx.getEntityManager();
-        Owner owner = manager.loadOwnerFromLedger(ownerID);
-        try {
-            return (owner.getOwnerID() != null);
-        } catch (Exception error) {
-            return false;
-        }       
-    }
-    /**
-     @param ctx
-     @param assetID
-     @param newOwner
-     @return
-     */
-    @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public boolean AlreadyOwningAsset(final EntityContext ctx, final String assetID, final String newOwner) {
-        EntityManager manager = ctx.getEntityManager();
-        Owner owner = manager.loadOwnerFromLedger(newOwner);
-        ArrayList<String> result = owner.getIDsOfOwnedAssets();
-
-        return (result.contains(assetID));
-    }
 
     /**
       @param ctx 
@@ -262,27 +218,24 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public String TransferAsset(final EntityContext ctx, final String assetID, final String newOwnerID) {
         EntityManager manager = ctx.getEntityManager();       
-        if (!OwnerExists(ctx, newOwnerID)) {
+        if (!manager.OwnerExists(newOwnerID)) {
             String errorMessage = String.format("Owner %s does not exist", newOwnerID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
         }
-        if (!AssetExists(ctx, assetID)) {
+        if (!manager.AssetExists(assetID)) {
             String errorMessage = String.format("Asset %s does not exist", assetID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
         }
-        if (AlreadyOwningAsset(ctx,assetID,newOwnerID)) {
+        if (manager.AlreadyOwningAsset(assetID,newOwnerID)) {
             String errorMessage = String.format("%s Already Ownes Asset with ID %s", newOwnerID, assetID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage);
         }
         Asset asset = manager.loadAssetFromLedger(assetID);
-        Owner owner = asset.getOwner(ctx);
-
-        manager.updateAssetIDCollections(owner.getOwnerID(), newOwnerID, assetID);
-        asset.setOwnerID(newOwnerID);
-        manager.saveAssetToLedger(asset);
+        Owner owner = manager.loadOwnerFromLedger(newOwnerID);
+        asset.setOwner(ctx,owner);
 
         String ResponseMessage = String.format("Ownership transfrred to %s", newOwnerID);
         return ResponseMessage;
@@ -296,7 +249,7 @@ public final class AssetTransfer implements ContractInterface {
     public Asset[] GetAllAssetsOfOwner(final EntityContext ctx, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();  
         
-        if (!OwnerExists(ctx, ownerID)) {
+        if (!manager.OwnerExists(ownerID)) {
             throw new ChaincodeException("Owner does not exists.");
         }
         Owner owner = manager.loadOwnerFromLedger(ownerID); 
@@ -313,7 +266,7 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public Owner GetOwnerOfAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();
-        if (!AssetExists(ctx, assetID)) {
+        if (!manager.AssetExists(assetID)) {
             String errorMessage = String.format("Asset %s does not exist", assetID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
@@ -327,7 +280,7 @@ public final class AssetTransfer implements ContractInterface {
      @return 
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String GetAllAssetIDs(final Context ctx) {
+    public String GetAllAssetIDs(final EntityContext ctx) {
         ChaincodeStub stub = ctx.getStub();
         Map<String,ArrayList<String>> resultMapping = new HashMap<String,ArrayList<String>>();
         QueryResultsIterator<KeyValue> ownerEntities = stub.getStateByPartialCompositeKey(Owner.class.getSimpleName());
@@ -340,3 +293,4 @@ public final class AssetTransfer implements ContractInterface {
         return response; 
     }
 }
+

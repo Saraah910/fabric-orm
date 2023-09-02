@@ -1,7 +1,6 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
  */
-
 package org.hyperledger.fabric.samples.assettransfer;
 
 import java.util.ArrayList;
@@ -13,14 +12,14 @@ import com.owlike.genson.annotation.JsonProperty;
 import org.hyperledger.fabric.contract.Context;
 
 @DataType()
-public final class Owner implements EntityBase{
+public final class Owner{
     private final Genson genson = new Genson();
-    transient private EntityManager entityManager;
+    
+    // transient private EntityContext context;
 
-    @Override
-    public void setEntityManager(EntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
+    // public void setEntityContext(EntityContext ctx) {
+    //     this.context = ctx;
+    // }
 
     @Property()
     private String ownerID;
@@ -67,11 +66,11 @@ public final class Owner implements EntityBase{
         this.OwnedAssetIDs.remove(assetID);        
     }
 
-    public ArrayList<Asset> getOwnedAssetsOfOwner(final EntityContext ctx) {
-        EntityManager manager = ctx.getEntityManager();
+    public ArrayList<Asset> getOwnedAssetsOfOwner(EntityContext ctx) {      
+        EntityManager entityManager = ctx.getEntityManager(); 
         if (ownedAssets == null) {
             for (String assetID : OwnedAssetIDs) {
-                Asset asset = manager.loadAssetFromLedger(assetID);
+                Asset asset = entityManager.loadAssetFromLedger(assetID);
                 OwnedAssetList.add(asset);
             }
         } 
@@ -84,7 +83,7 @@ public final class Owner implements EntityBase{
         this.name = name;
         this.lastName = lastName;
         this.OwnedAssetIDs = new ArrayList<String>();
-        this.ownedAssets = null;    
+        this.ownedAssets = null;   
     }
 
     public Owner(@JsonProperty("ownerID") final String ownerID, @JsonProperty("name") final String name,
@@ -113,16 +112,14 @@ public final class Owner implements EntityBase{
                 new String[] {getOwnerID(), getName(), getLastName()},
                 new String[] {other.getOwnerID(), other.getName(), other.getLastName()})
                 &&
-                Objects.deepEquals(getIDsOfOwnedAssets(), other.getIDsOfOwnedAssets())
-                &&
-                Objects.deepEquals(getOwnedAssetsOfOwner(null), other.getOwnedAssetsOfOwner(null));
+                Objects.deepEquals(getIDsOfOwnedAssets(), other.getIDsOfOwnedAssets());
                             
                 
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getOwnerID(), getName(), getLastName(), getOwnedAssetsOfOwner(null));
+        return Objects.hash(getOwnerID(), getName(), getLastName());
     }
 
     @Override
@@ -130,5 +127,6 @@ public final class Owner implements EntityBase{
         return this.getClass().getSimpleName() + "@" + Integer.toHexString(hashCode()) + " [ownerID=" + ownerID + ", name="
                 + name + ", lastName=" + lastName + ", iDsOfOwnedAssets=" + OwnedAssetIDs + ", ownedAssets=" + ownedAssets + "]";
     }
+
 
 }

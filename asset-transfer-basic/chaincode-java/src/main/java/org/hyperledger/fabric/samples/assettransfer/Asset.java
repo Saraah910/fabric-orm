@@ -10,15 +10,14 @@ import org.hyperledger.fabric.contract.annotation.Property;
 import com.owlike.genson.annotation.JsonProperty;
 
 @DataType()
-public final class Asset implements EntityBase{
+public final class Asset{
 
-    transient private EntityManager entityManager;
+    // transient private EntityContext context;
 
-    @Override
-    public void setEntityManager(EntityManager entityManager) {
-        this.entityManager = entityManager;
-    }
-    
+    // public void setEntityContext(EntityContext ctx) {
+    //     this.context = ctx;
+    // }
+
     @Property()
     private String assetID;
 
@@ -77,10 +76,22 @@ public final class Asset implements EntityBase{
         return appraisedValue;
     }
 
-    public Owner getOwner(final EntityContext ctx) {
-        EntityManager manager = ctx.getEntityManager();
+    public void setOwner(EntityContext ctx, Owner newOwner) {
+        EntityManager entityManager = ctx.getEntityManager();
+        if (ownerID != null) {
+            Owner oldOwner = entityManager.loadOwnerFromLedger(ownerID);
+            oldOwner.RemoveAssetID(assetID);
+            entityManager.saveOwnerToLedger(oldOwner);
+            this.setOwnerID(newOwner.getOwnerID());
+            entityManager.saveAssetToLedger(this);
+            newOwner.addAssetIDs(assetID);
+            entityManager.saveOwnerToLedger(newOwner);
+        }
+    }
+    public Owner getOwner(EntityContext ctx) { 
+        EntityManager entityManager = ctx.getEntityManager();     
         if (owner == null) {
-            owner = manager.loadOwnerFromLedger(ownerID);
+            owner = entityManager.loadOwnerFromLedger(ownerID);
         }
         return owner;
     }
@@ -94,7 +105,6 @@ public final class Asset implements EntityBase{
         this.ownerID = ownerID;
         this.owner = null;
         this.appraisedValue = appraisedValue;
-        
     }
 
     @Override

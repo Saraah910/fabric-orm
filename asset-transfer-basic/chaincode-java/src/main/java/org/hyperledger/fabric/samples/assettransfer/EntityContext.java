@@ -12,8 +12,7 @@ public class EntityContext extends Context{
     }
     public EntityContext(ChaincodeStub stub, EntityManager manager) {
         super(stub);
-        this.manager = manager;
-        
+        this.manager = manager;        
     }
     
 

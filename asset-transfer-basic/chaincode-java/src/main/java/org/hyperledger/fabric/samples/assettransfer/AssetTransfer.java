@@ -1,7 +1,6 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
  */
-
 package org.hyperledger.fabric.samples.assettransfer;
 
 import java.util.ArrayList;
@@ -59,12 +58,12 @@ public final class AssetTransfer implements ContractInterface {
     public void InitLedger(final EntityContext ctx) {
         EntityManager manager = ctx.getEntityManager();
         Asset asset = new Asset("asset1", "blue", 5, "Tomoko1", 300);
-        
-        Owner owner = new Owner("Tomoko1", "Tomoko","Roy");  
-        owner.addAssetIDs(asset.getAssetID());   
-        
         manager.saveAssetToLedger(asset);
-        manager.saveOwnerToLedger(owner);       
+        
+        Owner owner = new Owner("Tomoko1", "Tomoko", "Roy");
+        owner.addAssetIDs(asset.getAssetID());
+        manager.saveOwnerToLedger(owner);
+
     }
 
     /**
@@ -80,7 +79,7 @@ public final class AssetTransfer implements ContractInterface {
     public Asset CreateNewAsset(final EntityContext ctx, final String assetID, final String color, final int size,
         final String ownerID, final int appraisedValue) {
         EntityManager manager = ctx.getEntityManager();
-        
+
         if (!manager.OwnerExists(ownerID)) {
             String errorMessage = String.format("Owner does not exists.", ownerID);
             System.out.println(errorMessage);
@@ -91,12 +90,12 @@ public final class AssetTransfer implements ContractInterface {
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_ALREADY_EXISTS.toString());
         } 
+
         Asset asset = new Asset(assetID, color, size, ownerID, appraisedValue);
-        Owner owner = asset.getOwner(ctx);
+        manager.saveAssetToLedger(asset);
+        Owner owner = manager.loadOwnerFromLedger(ownerID);
 
         owner.addAssetIDs(assetID);
-
-        manager.saveAssetToLedger(asset); 
         manager.saveOwnerToLedger(owner);           
         return asset;
     }
@@ -111,11 +110,13 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public Owner CreateOwner(final EntityContext ctx, final String ownerID, final String firstName, final String lastName) {
         EntityManager manager = ctx.getEntityManager();
+        System.out.println("Created manager.");
         if (manager.OwnerExists(ownerID)) {
             String errorMessage = String.format("Owner %s already exists", ownerID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_ALREADY_EXISTS.toString());
         }       
+        System.out.println("Created manager and check done.");
         Owner owner = new Owner(ownerID, firstName, lastName);      
         manager.saveOwnerToLedger(owner);
         return owner;
@@ -127,15 +128,18 @@ public final class AssetTransfer implements ContractInterface {
      * @return 
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public Asset ReadAsset(final EntityContext ctx, final String assetID) {
+    public String ReadAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();
+        System.out.println("Created manager");
         if (!manager.AssetExists(assetID)) {
             String errorMessage = String.format("Asset %s does not exist", assetID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
         } 
-        Asset asset = manager.loadAssetFromLedger(assetID);       
-        return asset;        
+        System.out.println("Created manager and check done.");
+        Asset asset = manager.loadAssetFromLedger(assetID);  
+        String assetJSON = genson.serialize(asset);     
+        return assetJSON;        
     }
 
     /**
@@ -144,15 +148,18 @@ public final class AssetTransfer implements ContractInterface {
      @return 
      */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public Owner ReadOwner(final EntityContext ctx, final String ownerID) {
-        EntityManager manager = ctx.getEntityManager();       
+    public String ReadOwner(final EntityContext ctx, final String ownerID) {
+        EntityManager manager = ctx.getEntityManager();
+        System.out.println("Created manager.");
+
         if (!manager.OwnerExists(ownerID)) {
             String errorMessage = String.format("Owner %s does not exists", ownerID);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
-        }        
+        }
+        System.out.println("Created manager and check done.");        
         Owner owner = manager.loadOwnerFromLedger(ownerID);        
-        return owner;       
+        return genson.serialize(owner) + " " + owner.toString();       
     }
 
     /**
@@ -168,6 +175,7 @@ public final class AssetTransfer implements ContractInterface {
     public Asset UpdateAsset(final EntityContext ctx, final String assetID, final String color, final int size, 
         final String ownerID, final int appraisedValue) {
         EntityManager manager = ctx.getEntityManager();
+
         if (!manager.OwnerExists(ownerID)) {
             String errorMessage = String.format("Owner %s does not exists", ownerID);
             System.out.println(errorMessage);
@@ -235,7 +243,7 @@ public final class AssetTransfer implements ContractInterface {
         }
         Asset asset = manager.loadAssetFromLedger(assetID);
         Owner owner = manager.loadOwnerFromLedger(newOwnerID);
-        asset.setOwner(ctx,owner);
+        asset.setOwner(owner);
 
         String ResponseMessage = String.format("Ownership transfrred to %s", newOwnerID);
         return ResponseMessage;
@@ -253,7 +261,7 @@ public final class AssetTransfer implements ContractInterface {
             throw new ChaincodeException("Owner does not exists.");
         }
         Owner owner = manager.loadOwnerFromLedger(ownerID); 
-        String res = genson.serialize(owner.getOwnedAssetsOfOwner(ctx));
+        String res = genson.serialize(owner.getOwnedAssetsOfOwner());
         Asset[] OwnedAssetArray = genson.deserialize(res,Asset[].class);
         return OwnedAssetArray;        
     }
@@ -272,7 +280,8 @@ public final class AssetTransfer implements ContractInterface {
             throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
         }
         Asset asset = manager.loadAssetFromLedger(assetID);
-        return asset.getOwner(ctx);        
+        
+        return asset.getOwner("");        
     }
 
     /**

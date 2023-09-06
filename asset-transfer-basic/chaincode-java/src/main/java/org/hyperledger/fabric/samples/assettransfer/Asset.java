@@ -12,11 +12,11 @@ import com.owlike.genson.annotation.JsonProperty;
 @DataType()
 public final class Asset{
 
-    // transient private EntityContext context;
+    transient private EntityManager entityManager;
 
-    // public void setEntityContext(EntityContext ctx) {
-    //     this.context = ctx;
-    // }
+    public void setEntityManager(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     @Property()
     private String assetID;
@@ -31,10 +31,11 @@ public final class Asset{
     private String ownerID;
 
     @Property()
-    private int appraisedValue;
+    private Owner owner;
 
     @Property()
-    private Owner owner;
+    private int appraisedValue;
+
 
     public void setAssetID(String assetID) {
         this.assetID = assetID;
@@ -76,8 +77,7 @@ public final class Asset{
         return appraisedValue;
     }
 
-    public void setOwner(EntityContext ctx, Owner newOwner) {
-        EntityManager entityManager = ctx.getEntityManager();
+    public void setOwner(Owner newOwner) {
         if (ownerID != null) {
             Owner oldOwner = entityManager.loadOwnerFromLedger(ownerID);
             oldOwner.RemoveAssetID(assetID);
@@ -88,17 +88,34 @@ public final class Asset{
             entityManager.saveOwnerToLedger(newOwner);
         }
     }
-    public Owner getOwner(EntityContext ctx) { 
-        EntityManager entityManager = ctx.getEntityManager();     
+
+    public Owner getOwner(String s) { 
+        // EntityManager entityManager = ctx.getEntityManager();
         if (owner == null) {
             owner = entityManager.loadOwnerFromLedger(ownerID);
-        }
+        }       
         return owner;
     }
 
+    public String verifyManager() {
+        if(entityManager != null) {
+            return "manager set.";
+        }
+        return "manager not set";
+    }
+    
+    public Asset(final String assetID, final String color, final int size, final String ownerID, final int appraisedValue) {
+        this.assetID = assetID;
+        this.color = color;
+        this.size = size;
+        this.ownerID = ownerID;
+        this.owner = null;
+        this.appraisedValue = appraisedValue;
+    }
+    
     public Asset(@JsonProperty("assetID") final String assetID, @JsonProperty("color") final String color,
-            @JsonProperty("size") final int size, @JsonProperty("ownerID") final String ownerID,
-            @JsonProperty("appraisedValue") final int appraisedValue) {
+            @JsonProperty("size") final int size, @JsonProperty("ownerID") final String ownerID, 
+            @JsonProperty("owner") final Owner owner, @JsonProperty("appraisedValue") final int appraisedValue) {
         this.assetID = assetID;
         this.color = color;
         this.size = size;

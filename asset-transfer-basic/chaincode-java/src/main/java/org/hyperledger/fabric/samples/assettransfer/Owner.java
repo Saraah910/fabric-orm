@@ -15,11 +15,11 @@ import org.hyperledger.fabric.contract.Context;
 public final class Owner{
     private final Genson genson = new Genson();
     
-    // transient private EntityContext context;
+    transient public EntityManager entityManager;
 
-    // public void setEntityContext(EntityContext ctx) {
-    //     this.context = ctx;
-    // }
+    public void setEntityManager(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     @Property()
     private String ownerID;
@@ -34,7 +34,7 @@ public final class Owner{
     private ArrayList<String> OwnedAssetIDs;
 
     @Property()
-    private ArrayList<Asset> ownedAssets;
+    private ArrayList<Asset> ownedAssets = null;
 
     private ArrayList<Asset> OwnedAssetList = new ArrayList<Asset>();
 
@@ -65,17 +65,15 @@ public final class Owner{
     public void RemoveAssetID(final String assetID) {
         this.OwnedAssetIDs.remove(assetID);        
     }
-
-    public ArrayList<Asset> getOwnedAssetsOfOwner(EntityContext ctx) {      
-        EntityManager entityManager = ctx.getEntityManager(); 
+    
+    public ArrayList<Asset> getOwnedAssetsOfOwner() {      
         if (ownedAssets == null) {
             for (String assetID : OwnedAssetIDs) {
                 Asset asset = entityManager.loadAssetFromLedger(assetID);
                 OwnedAssetList.add(asset);
             }
-        } 
-        ownedAssets = OwnedAssetList;      
-        return ownedAssets;        
+        }      
+        return OwnedAssetList;        
     }
 
     public Owner(final String ownerID, final String name, final String lastName) {
@@ -83,16 +81,16 @@ public final class Owner{
         this.name = name;
         this.lastName = lastName;
         this.OwnedAssetIDs = new ArrayList<String>();
-        this.ownedAssets = null;   
+        this.ownedAssets = null;
     }
 
     public Owner(@JsonProperty("ownerID") final String ownerID, @JsonProperty("name") final String name,
-            @JsonProperty("lastName") final String lastName, @JsonProperty("iDsOfOwnedAssets") ArrayList<String> OwnedAssetIDs,
-            @JsonProperty("ownedAssets") ArrayList<Asset> ownedAssets) {
-        this.ownerID = ownerID;
-        this.name = name;
+                @JsonProperty("lastName") final String lastName, @JsonProperty("iDsOfOwnedAssets") ArrayList<String> OwnedAssetIDs,
+                @JsonProperty("ownedAssets") ArrayList<Asset> ownedAssets) {
+        this.ownerID = ownerID;  
+        this.name = name;  
         this.lastName = lastName;
-        this.OwnedAssetIDs = OwnedAssetIDs;
+        this.OwnedAssetIDs = OwnedAssetIDs; 
         this.ownedAssets = null;         
     }
 
@@ -110,11 +108,8 @@ public final class Owner{
 
         return Objects.deepEquals(
                 new String[] {getOwnerID(), getName(), getLastName()},
-                new String[] {other.getOwnerID(), other.getName(), other.getLastName()})
-                &&
-                Objects.deepEquals(getIDsOfOwnedAssets(), other.getIDsOfOwnedAssets());
-                            
-                
+                new String[] {other.getOwnerID(), other.getName(), other.getLastName()});
+                    
     }
 
     @Override
@@ -125,7 +120,7 @@ public final class Owner{
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + "@" + Integer.toHexString(hashCode()) + " [ownerID=" + ownerID + ", name="
-                + name + ", lastName=" + lastName + ", iDsOfOwnedAssets=" + OwnedAssetIDs + ", ownedAssets=" + ownedAssets + "]";
+                + name + ", lastName=" + lastName + ", OwnedAssetIDs= "+ OwnedAssetIDs + ", OwnedAssets= "+ null +"]";
     }
 
 

@@ -64,17 +64,17 @@
 //             assetList = new ArrayList<KeyValue>();
 
 //             assetList.add(new MockKeyValue("asset1",
-//                     "{ \"assetID\": \"asset1\", \"color\": \"blue\", \"size\": 5, \"ownerID\": \"Tomoko\", \"appraisedValue\": 300 }"));
+//                     "{ \"assetID\": \"asset1\", \"color\": \"blue\", \"size\": 5, \"owner\": \"Tomoko\", \"appraisedValue\": 300 }"));
 //             assetList.add(new MockKeyValue("asset2",
-//                     "{ \"assetID\": \"asset2\", \"color\": \"red\", \"size\": 5,\"ownerID\": \"Brad\", \"appraisedValue\": 400 }"));
+//                     "{ \"assetID\": \"asset2\", \"color\": \"red\", \"size\": 5,\"owner\": \"Brad\", \"appraisedValue\": 400 }"));
 //             assetList.add(new MockKeyValue("asset3",
-//                     "{ \"assetID\": \"asset3\", \"color\": \"green\", \"size\": 10,\"ownerID\": \"Jin Soo\", \"appraisedValue\": 500 }"));
+//                     "{ \"assetID\": \"asset3\", \"color\": \"green\", \"size\": 10,\"owner\": \"Jin Soo\", \"appraisedValue\": 500 }"));
 //             assetList.add(new MockKeyValue("asset4",
-//                     "{ \"assetID\": \"asset4\", \"color\": \"yellow\", \"size\": 10,\"ownerID\": \"Max\", \"appraisedValue\": 600 }"));
+//                     "{ \"assetID\": \"asset4\", \"color\": \"yellow\", \"size\": 10,\"owner\": \"Max\", \"appraisedValue\": 600 }"));
 //             assetList.add(new MockKeyValue("asset5",
-//                     "{ \"assetID\": \"asset5\", \"color\": \"black\", \"size\": 15,\"ownerID\": \"Adrian\", \"appraisedValue\": 700 }"));
+//                     "{ \"assetID\": \"asset5\", \"color\": \"black\", \"size\": 15,\"owner\": \"Adrian\", \"appraisedValue\": 700 }"));
 //             assetList.add(new MockKeyValue("asset6",
-//                     "{ \"assetID\": \"asset6\", \"color\": \"white\", \"size\": 15,\"ownerID\": \"Michel\", \"appraisedValue\": 800 }"));
+//                     "{ \"assetID\": \"asset6\", \"color\": \"white\", \"size\": 15,\"owner\": \"Michel\", \"appraisedValue\": 800 }"));
 //         }
 
 //         @Override
@@ -115,7 +115,7 @@
 //             ChaincodeStub stub = mock(ChaincodeStub.class);
 //             when(ctx.getStub()).thenReturn(stub);
 //             when(stub.getStringState("asset1"))
-//                     .thenReturn("{ \"assetID\": \"asset1\", \"color\": \"blue\", \"size\": 5, \"ownerID\": \"Tomoko\", \"appraisedValue\": 300 }");
+//                     .thenReturn("{ \"assetID\": \"asset1\", \"color\": \"blue\", \"size\": 5, \"owner\": \"Tomoko\", \"appraisedValue\": 300 }");
 
 //             Asset asset = contract.ReadAsset(ctx, "asset1");
 
@@ -150,11 +150,11 @@
 //         contract.InitLedger(ctx);
 
 //         InOrder inOrder = inOrder(stub);
-//         inOrder.verify(stub).putStringState("asset1", "{\"appraisedValue\":300,\"assetID\":\"asset1\",\"color\":\"blue\",\"ownerID\":\"Tomoko1\",\"size\":5}");
-//         inOrder.verify(stub).putStringState("asset2", "{\"appraisedValue\":400,\"assetID\":\"asset2\",\"color\":\"red\",\"ownerID\":\"Brad2\",\"size\":5}");
-//         inOrder.verify(stub).putStringState("asset3", "{\"appraisedValue\":500,\"assetID\":\"asset3\",\"color\":\"green\",\"ownerID\":\"Jin Soo3\",\"size\":10}");
-//         inOrder.verify(stub).putStringState("asset4", "{\"appraisedValue\":600,\"assetID\":\"asset4\",\"color\":\"yellow\",\"ownerID\":\"Max4\",\"size\":10}");
-//         inOrder.verify(stub).putStringState("asset5", "{\"appraisedValue\":700,\"assetID\":\"asset5\",\"color\":\"black\",\"ownerID\":\"Adrian5\",\"size\":15}");
+//         inOrder.verify(stub).putStringState("asset1", "{\"appraisedValue\":300,\"assetID\":\"asset1\",\"color\":\"blue\",\"owner\":\"Tomoko\",\"size\":5}");
+//         inOrder.verify(stub).putStringState("asset2", "{\"appraisedValue\":400,\"assetID\":\"asset2\",\"color\":\"red\",\"owner\":\"Brad\",\"size\":5}");
+//         inOrder.verify(stub).putStringState("asset3", "{\"appraisedValue\":500,\"assetID\":\"asset3\",\"color\":\"green\",\"owner\":\"Jin Soo\",\"size\":10}");
+//         inOrder.verify(stub).putStringState("asset4", "{\"appraisedValue\":600,\"assetID\":\"asset4\",\"color\":\"yellow\",\"owner\":\"Max\",\"size\":10}");
+//         inOrder.verify(stub).putStringState("asset5", "{\"appraisedValue\":700,\"assetID\":\"asset5\",\"color\":\"black\",\"owner\":\"Adrian\",\"size\":15}");
 
 //     }
 
@@ -168,7 +168,7 @@
 //             ChaincodeStub stub = mock(ChaincodeStub.class);
 //             when(ctx.getStub()).thenReturn(stub);
 //             when(stub.getStringState("asset1"))
-//                     .thenReturn("{ \"assetID\": \"asset1\", \"color\": \"blue\", \"size\": 5, \"ownerID\": \"Tomoko\", \"appraisedValue\": 300 }");
+//                     .thenReturn("{ \"assetID\": \"asset1\", \"color\": \"blue\", \"size\": 5, \"owner\": \"Tomoko\", \"appraisedValue\": 300 }");
 
 //             Throwable thrown = catchThrowable(() -> {
 //                 contract.CreateAsset(ctx, "asset1", "blue", 45, "Siobhán", 60);
@@ -193,24 +193,24 @@
 //         }
 //     }
 
-//     // @Test
-//     // void invokeGetAllAssetsTransaction() {
-//     //     AssetTransfer contract = new AssetTransfer();
-//     //     Context ctx = mock(Context.class);
-//     //     ChaincodeStub stub = mock(ChaincodeStub.class);
-//     //     when(ctx.getStub()).thenReturn(stub);
-//     //     when(stub.getStateByRange("", "")).thenReturn(new MockAssetResultsIterator());
+//     @Test
+//     void invokeGetAllAssetsTransaction() {
+//         AssetTransfer contract = new AssetTransfer();
+//         Context ctx = mock(Context.class);
+//         ChaincodeStub stub = mock(ChaincodeStub.class);
+//         when(ctx.getStub()).thenReturn(stub);
+//         when(stub.getStateByRange("", "")).thenReturn(new MockAssetResultsIterator());
 
-//     //     String assets = contract.GetAllAssets(ctx);
+//         String assets = contract.GetAllAssets(ctx);
 
-//     //     assertThat(assets).isEqualTo("[{\"appraisedValue\":300,\"assetID\":\"asset1\",\"color\":\"blue\",\"ownerID\":\"Tomoko\",\"size\":5},"
-//     //             + "{\"appraisedValue\":400,\"assetID\":\"asset2\",\"color\":\"red\",\"ownerID\":\"Brad\",\"size\":5},"
-//     //             + "{\"appraisedValue\":500,\"assetID\":\"asset3\",\"color\":\"green\",\"ownerID\":\"Jin Soo\",\"size\":10},"
-//     //             + "{\"appraisedValue\":600,\"assetID\":\"asset4\",\"color\":\"yellow\",\"ownerID\":\"Max\",\"size\":10},"
-//     //             + "{\"appraisedValue\":700,\"assetID\":\"asset5\",\"color\":\"black\",\"ownerID\":\"Adrian\",\"size\":15},"
-//     //             + "{\"appraisedValue\":800,\"assetID\":\"asset6\",\"color\":\"white\",\"ownerID\":\"Michel\",\"size\":15}]");
+//         assertThat(assets).isEqualTo("[{\"appraisedValue\":300,\"assetID\":\"asset1\",\"color\":\"blue\",\"owner\":\"Tomoko\",\"size\":5},"
+//                 + "{\"appraisedValue\":400,\"assetID\":\"asset2\",\"color\":\"red\",\"owner\":\"Brad\",\"size\":5},"
+//                 + "{\"appraisedValue\":500,\"assetID\":\"asset3\",\"color\":\"green\",\"owner\":\"Jin Soo\",\"size\":10},"
+//                 + "{\"appraisedValue\":600,\"assetID\":\"asset4\",\"color\":\"yellow\",\"owner\":\"Max\",\"size\":10},"
+//                 + "{\"appraisedValue\":700,\"assetID\":\"asset5\",\"color\":\"black\",\"owner\":\"Adrian\",\"size\":15},"
+//                 + "{\"appraisedValue\":800,\"assetID\":\"asset6\",\"color\":\"white\",\"owner\":\"Michel\",\"size\":15}]");
 
-//     // }
+//     }
 
 //     @Nested
 //     class TransferAssetTransaction {
@@ -222,7 +222,7 @@
 //             ChaincodeStub stub = mock(ChaincodeStub.class);
 //             when(ctx.getStub()).thenReturn(stub);
 //             when(stub.getStringState("asset1"))
-//                     .thenReturn("{ \"assetID\": \"asset1\", \"color\": \"blue\", \"size\": 5, \"ownerID\": \"Tomoko\", \"appraisedValue\": 300 }");
+//                     .thenReturn("{ \"assetID\": \"asset1\", \"color\": \"blue\", \"size\": 5, \"owner\": \"Tomoko\", \"appraisedValue\": 300 }");
 
 //             String oldOwner = contract.TransferAsset(ctx, "asset1", "Dr Evil");
 
@@ -257,7 +257,7 @@
 //             ChaincodeStub stub = mock(ChaincodeStub.class);
 //             when(ctx.getStub()).thenReturn(stub);
 //             when(stub.getStringState("asset1"))
-//                     .thenReturn("{ \"assetID\": \"asset1\", \"color\": \"blue\", \"size\": 45, \"ownerID\": \"Arturo\", \"appraisedValue\": 60 }");
+//                     .thenReturn("{ \"assetID\": \"asset1\", \"color\": \"blue\", \"size\": 45, \"owner\": \"Arturo\", \"appraisedValue\": 60 }");
 
 //             Asset asset = contract.UpdateAsset(ctx, "asset1", "pink", 45, "Arturo", 600);
 

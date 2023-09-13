@@ -6,7 +6,6 @@ import org.hyperledger.fabric.shim.ChaincodeStub;
 public class EntityContext extends Context{
 
     private EntityManager manager;
-
     public EntityManager getEntityManager() {
         return manager;
     }
@@ -14,6 +13,5 @@ public class EntityContext extends Context{
         super(stub);
         this.manager = manager;        
     }
-    
 
 }

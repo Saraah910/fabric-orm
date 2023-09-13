@@ -1,120 +1,100 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- */
 package org.hyperledger.fabric.samples.assettransfer;
+
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.hyperledger.fabric.shim.ChaincodeStub;
 import org.hyperledger.fabric.shim.ledger.CompositeKey;
+import org.hyperledger.fabric.shim.ledger.KeyValue;
+import org.hyperledger.fabric.shim.ledger.QueryResultsIterator;
+
 import com.owlike.genson.Genson;
 
 public class EntityManager {
+    Genson genson = new Genson();
+    ChaincodeStub stub;
 
-    private final Genson genson = new Genson();
-    private ChaincodeStub stub;
-
-    private HashMap<String, Asset> assetCache = new HashMap<String,Asset>();
-    private HashMap<String, Owner> ownerCache = new HashMap<String,Owner>();
-
-    public Asset loadAssetFromLedger(String assetID) {    
-        if (assetCache.containsKey(assetID)) {
-            Asset asset = assetCache.get(assetID);
-            System.out.println("Asset loaded from cache");
-            asset.setEntityManager(this);
-            return asset;
-        } 
-        CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(),assetID);
-        String assetJSON = stub.getStringState(assetKey.toString());
-        Asset asset = genson.deserialize(assetJSON, Asset.class);
-        System.out.println("Asset loaded from ledger");
+    public void saveAsset(Asset asset) {
         asset.setEntityManager(this);
-        return asset;    
-        
-    }
-
-    public Owner loadOwnerFromLedger(String ownerID) {  
-        if (ownerCache.containsKey(ownerID)) {            
-            Owner owner = ownerCache.get(ownerID);
-            System.out.println("Owner loaded from cache");
-            owner.setEntityManager(this);
-            return owner;
-        }
-        CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(),ownerID);
-        String ownerJSON = stub.getStringState(ownerKey.toString());
-        Owner owner = genson.deserialize(ownerJSON, Owner.class);
-        owner.setEntityManager(this);
-        System.out.println("Owner loaded from ledger");
-        return owner;
-        
-        
-    }
-
-    public void saveAssetToLedger(Asset asset) {
-        asset.setEntityManager(this);
-        String assetJSON = genson.serialize(asset);
         CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(), asset.getAssetID());
-        stub.putStringState(assetKey.toString(), assetJSON);    
-        assetCache.put(asset.getAssetID(), asset);          
+        String assetJSON = genson.serialize(asset);
+        stub.putStringState(assetKey.toString(), assetJSON);
     }
 
-    public void saveOwnerToLedger(Owner owner) {
+    public void saveOwner(Owner owner) {
         owner.setEntityManager(this);
-        String ownerJSON = genson.serialize(owner);
         CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(), owner.getOwnerID());
+        String ownerJSON = genson.serialize(owner);
         stub.putStringState(ownerKey.toString(), ownerJSON);
-        ownerCache.put(owner.getOwnerID(), owner);       
     }
 
-    public void deleteAssetFromLedger(String assetID) {
+    public Asset loadAsset(String assetID) {
         CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(), assetID);
-        Asset asset = this.loadAssetFromLedger(assetID);
-        Owner owner = this.loadOwnerFromLedger(asset.getOwnerID());
-        owner.RemoveAssetID(assetID);
-        this.saveOwnerToLedger(owner);
+        String assetJSON = stub.getStringState(assetKey.toString());
+        Asset asset = genson.deserialize(assetJSON,Asset.class);
+        asset.setEntityManager(this);
+        return asset;
+    }
+
+    public Owner loadOwner(String ownerID) {
+        CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(), ownerID);
+        String ownerJSON = stub.getStringState(ownerKey.toString());
+        Owner owner = genson.deserialize(ownerJSON,Owner.class);
+        owner.setEntityManager(this);
+        return owner;
+    }
+
+    public void deleteAsset(String assetID) {
+        CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(), assetID);
+        Asset asset = loadAsset(assetID);
+        Owner owner = loadOwner(asset.getOwnerID());
+        owner.removeAssetID(assetID);
+        saveOwner(owner);
         stub.delState(assetKey.toString());
     }
 
+    public String viewDB() {
+        Map<String,ArrayList<String>> resultMapping = new HashMap<String,ArrayList<String>>();
+        QueryResultsIterator<KeyValue> results = stub.getStateByPartialCompositeKey(Owner.class.getSimpleName());
+        for (KeyValue result: results) {
+            Owner owner = genson.deserialize(result.getStringValue(),Owner.class);
+            resultMapping.put(owner.getOwnerID(), owner.getMyAssetIDCollection());
+        }
+        String response = genson.serialize(resultMapping);
+        return response;
+    }
     public boolean AssetExists(String assetID) {
-        try {
-            Asset asset = this.loadAssetFromLedger(assetID);
-            System.out.println("Asset loaded");
+        try{
+            Asset asset = loadAsset(assetID);
             if (asset.getAssetID() != null) {
-                System.out.println("Asset exists");
+                System.out.print("Asset exists");
             }
             return true;
-        } catch (Exception error) {
-            System.out.println("Asset not exists");
+        } catch(Exception error) {
             return false;
-        }        
+        }
     }
 
-    public boolean OwnerExists(final String ownerID) {
-        try {
-            Owner owner = this.loadOwnerFromLedger(ownerID);
-            System.out.println("Owner loaded");
+    public boolean OwnerExists(String ownerID) {
+        try{
+            Owner owner = loadOwner(ownerID);
             if (owner.getOwnerID() != null) {
-
+                System.out.print("Owner exists");
             }
-            System.out.println("Owner exists");
             return true;
-        } catch (Exception error) {
-            System.out.println("Owner not exists");
+        } catch(Exception error) {
             return false;
-        }       
-    }
-    
-    public boolean AlreadyOwningAsset(final String assetID, final String newOwner) {
-        Owner owner = this.loadOwnerFromLedger(newOwner);
-        owner.setEntityManager(this);
-        ArrayList<String> result = owner.getIDsOfOwnedAssets();
-
-        return (result.contains(assetID));
+        }
     }
 
+    public boolean AlreadyOwnedAsset(final String assetID, final String newOwnerID) {
+        Owner owner = loadOwner(newOwnerID);
+        ArrayList<String> ownedAssetIDs = owner.getMyAssetIDCollection();
+
+        return (ownedAssetIDs.contains(assetID));
+    }
     public EntityManager(ChaincodeStub stub) {
-        this.stub = stub; 
-
+        this.stub = stub;
     }
-
 }

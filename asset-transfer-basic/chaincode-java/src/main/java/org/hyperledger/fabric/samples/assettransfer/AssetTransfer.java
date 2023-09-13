@@ -3,10 +3,6 @@
  */
 package org.hyperledger.fabric.samples.assettransfer;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.hyperledger.fabric.contract.Context;
 import org.hyperledger.fabric.contract.ContractInterface;
 import org.hyperledger.fabric.contract.annotation.Contact;
@@ -17,8 +13,6 @@ import org.hyperledger.fabric.contract.annotation.License;
 import org.hyperledger.fabric.contract.annotation.Transaction;
 import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
-import org.hyperledger.fabric.shim.ledger.KeyValue;
-import org.hyperledger.fabric.shim.ledger.QueryResultsIterator;
 
 import com.owlike.genson.Genson;
 
@@ -39,6 +33,7 @@ import com.owlike.genson.Genson;
 public final class AssetTransfer implements ContractInterface {
 
     private final Genson genson = new Genson();
+
     private enum AssetTransferErrors {
         ASSET_NOT_FOUND,
         ASSET_ALREADY_EXISTS,
@@ -57,249 +52,137 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public void InitLedger(final EntityContext ctx) {
         EntityManager manager = ctx.getEntityManager();
-        Asset asset = new Asset("asset1", "blue", 5, "Tomoko1", 300);
-        manager.saveAssetToLedger(asset);
-        
-        Owner owner = new Owner("Tomoko1", "Tomoko", "Roy");
-        owner.addAssetIDs(asset.getAssetID());
-        manager.saveOwnerToLedger(owner);
+        Owner owner = new Owner("Sakshi1", "Sakshi", "Aherkar");
+        manager.saveOwner(owner);
 
     }
 
-    /**
-     @param ctx 
-     @param assetID 
-     @param color 
-     @param size 
-     @param ownerID 
-     @param appraisedValue 
-     @return 
-     */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public Asset CreateNewAsset(final EntityContext ctx, final String assetID, final String color, final int size,
-        final String ownerID, final int appraisedValue) {
+    public Asset CreateAsset(final EntityContext ctx, final String assetID, final String color, final int size,
+                        final String ownerID, final int appraisedValue) {
         EntityManager manager = ctx.getEntityManager();
-
-        if (!manager.OwnerExists(ownerID)) {
-            String errorMessage = String.format("Owner does not exists.", ownerID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
-        }
         if (manager.AssetExists(assetID)) {
-            String errorMessage = String.format("Asset %s already exists", assetID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_ALREADY_EXISTS.toString());
-        } 
-
+            throw new ChaincodeException("ASSET ALREADY EXISTS");
+        }
+        if (!manager.OwnerExists(ownerID)) {
+            throw new ChaincodeException("OWNER DOES NOT EXISTS");
+        }
         Asset asset = new Asset(assetID, color, size, ownerID, appraisedValue);
-        manager.saveAssetToLedger(asset);
-        Owner owner = manager.loadOwnerFromLedger(ownerID);
+        manager.saveAsset(asset);
 
-        owner.addAssetIDs(assetID);
-        manager.saveOwnerToLedger(owner);           
+        Owner owner = manager.loadOwner(ownerID);
+        owner.addAssetID(assetID);
+        manager.saveOwner(owner);
         return asset;
     }
 
-    /**
-     @param ctx
-     @param ownerID
-     @param firstName
-     @param lastName
-     @return
-     */
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public Owner CreateOwner(final EntityContext ctx, final String ownerID, final String firstName, final String lastName) {
+    public Owner CreateOwner(final EntityContext ctx, final String ownerID, final String name, final String lastName) {
         EntityManager manager = ctx.getEntityManager();
-        System.out.println("Created manager.");
         if (manager.OwnerExists(ownerID)) {
-            String errorMessage = String.format("Owner %s already exists", ownerID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_ALREADY_EXISTS.toString());
-        }       
-        System.out.println("Created manager and check done.");
-        Owner owner = new Owner(ownerID, firstName, lastName);      
-        manager.saveOwnerToLedger(owner);
+            throw new ChaincodeException("OWNER ALREADY EXISTS");
+        }
+        Owner owner = new Owner(ownerID, name, lastName);
+        manager.saveOwner(owner);
         return owner;
     }
 
-    /**
-     * @param ctx 
-     * @param assetID 
-     * @return 
-     */
-    @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String ReadAsset(final EntityContext ctx, final String assetID) {
-        EntityManager manager = ctx.getEntityManager();
-        System.out.println("Created manager");
-        if (!manager.AssetExists(assetID)) {
-            String errorMessage = String.format("Asset %s does not exist", assetID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
-        } 
-        System.out.println("Created manager and check done.");
-        Asset asset = manager.loadAssetFromLedger(assetID);  
-        String assetJSON = genson.serialize(asset);     
-        return assetJSON;        
-    }
-
-    /**
-     @param ctx 
-     @param ownerID 
-     @return 
-     */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public String ReadOwner(final EntityContext ctx, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();
-        System.out.println("Created manager.");
-
         if (!manager.OwnerExists(ownerID)) {
-            String errorMessage = String.format("Owner %s does not exists", ownerID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
+            throw new ChaincodeException("OWNER DOES NOT EXISTS");
         }
-        System.out.println("Created manager and check done.");        
-        Owner owner = manager.loadOwnerFromLedger(ownerID);        
-        return genson.serialize(owner) + " " + owner.toString();       
+        Owner owner = manager.loadOwner(ownerID);
+        return genson.serialize(owner);
     }
 
-    /**
-     @param ctx 
-     @param assetID 
-     @param color 
-     @param size 
-     @param ownerID 
-     @param appraisedValue 
-     @return 
-     */
-    @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public Asset UpdateAsset(final EntityContext ctx, final String assetID, final String color, final int size, 
-        final String ownerID, final int appraisedValue) {
-        EntityManager manager = ctx.getEntityManager();
+    @Transaction(intent = Transaction.TYPE.EVALUATE) 
+    public String ReadAsset(final EntityContext ctx, final String assetID) {
+        EntityManager manager = ctx.getEntityManager();        
+        if (!manager.AssetExists(assetID)) {
+            throw new ChaincodeException("ASSET DOES NOT EXIXTS");
+        }
+        Asset asset = manager.loadAsset(assetID);
+        return genson.serialize(asset);
+    }
 
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public String TransferAsset(final EntityContext ctx, final String assetID, final String ownerID) {
+        EntityManager manager = ctx.getEntityManager();
+        if (!manager.AssetExists(assetID)) {
+            throw new ChaincodeException("ASSET DOES NOT EXISTS");
+        }
         if (!manager.OwnerExists(ownerID)) {
-            String errorMessage = String.format("Owner %s does not exists", ownerID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
+            throw new ChaincodeException("OWNER DOES NOT EXISTS");
+        }
+        if (manager.AlreadyOwnedAsset(assetID, ownerID)) {
+            throw new ChaincodeException("OWNER ALREADY OWNES ASSET %S ",assetID);
+        }
+
+        Asset asset = manager.loadAsset(assetID);
+        Owner owner = manager.loadOwner(ownerID);
+        asset.setOwner(owner);
+
+        return "OWNERSHIP TRANSFRRED";
+    }
+
+    @Transaction(intent = Transaction.TYPE.SUBMIT)
+    public String UpdateAsset(final EntityContext ctx, final String assetID, final String color, final int size,
+                        final String ownerID, final int appraisedValue) {
+        EntityManager manager = ctx.getEntityManager();
+        if (!manager.OwnerExists(ownerID)) {
+            throw new ChaincodeException("OWNER DOES NOT EXISTS");
         }
         if (!manager.AssetExists(assetID)) {
-            String errorMessage = String.format("Asset %s does not exist", assetID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
+            throw new ChaincodeException("ASSET DOES NOT EXIST");
         }
-        Asset asset = manager.loadAssetFromLedger(assetID);
-
+        Asset asset = manager.loadAsset(assetID);
         if (!asset.getOwnerID().equals(ownerID)) {
-            String errorMessage = "Ownership cannot be updated.";
-            throw new ChaincodeException(errorMessage);
-        } 
+            throw new ChaincodeException("OWNERSHIP CANNOT BE TRANSFRRED");
+        }
         asset.setAssetID(assetID);
         asset.setColor(color);
         asset.setSize(size);
         asset.setAppraisedValue(appraisedValue);
-        manager.saveAssetToLedger(asset);
-        return asset;
+        manager.saveAsset(asset);
+        return "ASSET UPDATED";
     }
 
-    /**
-     @param ctx 
-     @param assetID 
-     */
-    @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String DeleteAsset(final EntityContext ctx, final String assetID) {
+    @Transaction(intent = Transaction.TYPE.SUBMIT) 
+    public void DeleteAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();
         if (!manager.AssetExists(assetID)) {
-            String errorMessage = String.format("Asset %s does not exist", assetID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
-        }        
-        manager.deleteAssetFromLedger(assetID);
-        String ResponeMessage = String.format("Deleted asset with ID %s ", assetID);
-        return ResponeMessage;
-    }    
-
-    /**
-      @param ctx 
-      @param assetID 
-      @param newOwner 
-      @return 
-     */
-    @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String TransferAsset(final EntityContext ctx, final String assetID, final String newOwnerID) {
-        EntityManager manager = ctx.getEntityManager();       
-        if (!manager.OwnerExists(newOwnerID)) {
-            String errorMessage = String.format("Owner %s does not exist", newOwnerID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, AssetTransferErrors.OWNER_NOT_FOUND.toString());
+            throw new ChaincodeException("ASSET DOES NOT EXIST");
         }
-        if (!manager.AssetExists(assetID)) {
-            String errorMessage = String.format("Asset %s does not exist", assetID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
-        }
-        if (manager.AlreadyOwningAsset(assetID,newOwnerID)) {
-            String errorMessage = String.format("%s Already Ownes Asset with ID %s", newOwnerID, assetID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage);
-        }
-        Asset asset = manager.loadAssetFromLedger(assetID);
-        Owner owner = manager.loadOwnerFromLedger(newOwnerID);
-        asset.setOwner(owner);
-
-        String ResponseMessage = String.format("Ownership transfrred to %s", newOwnerID);
-        return ResponseMessage;
+        manager.deleteAsset(assetID);
     }
 
-    /**
-      @param ctx 
-      @return 
-     */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public Asset[] GetAllAssetsOfOwner(final EntityContext ctx, final String ownerID) {
-        EntityManager manager = ctx.getEntityManager();  
-        
+    public Asset[] GetAssetsOfOwner(final EntityContext ctx, final String ownerID) {
+        EntityManager manager = ctx.getEntityManager();
         if (!manager.OwnerExists(ownerID)) {
-            throw new ChaincodeException("Owner does not exists.");
+            throw new ChaincodeException("OWNER DOES NOT EXISTS");
         }
-        Owner owner = manager.loadOwnerFromLedger(ownerID); 
-        String res = genson.serialize(owner.getOwnedAssetsOfOwner());
-        Asset[] OwnedAssetArray = genson.deserialize(res,Asset[].class);
-        return OwnedAssetArray;        
+        Owner owner = manager.loadOwner(ownerID);
+        String res = genson.serialize(owner.fetchAssetCollection());
+        Asset[] response = genson.deserialize(res,Asset[].class);
+        return response;
     }
 
-    /**
-     * @param ctx
-     * @param assetID
-     * @return
-     */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public Owner GetOwnerOfAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();
         if (!manager.AssetExists(assetID)) {
-            String errorMessage = String.format("Asset %s does not exist", assetID);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, AssetTransferErrors.ASSET_NOT_FOUND.toString());
+            throw new ChaincodeException("ASSET DOES NOT EXISTS");
         }
-        Asset asset = manager.loadAssetFromLedger(assetID);
-        
-        return asset.getOwner("");        
+        Asset asset = manager.loadAsset(assetID);
+        return asset.getOwner();
     }
 
-    /**
-     @param ctx 
-     @return 
-     */
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String GetAllAssetIDs(final EntityContext ctx) {
-        ChaincodeStub stub = ctx.getStub();
-        Map<String,ArrayList<String>> resultMapping = new HashMap<String,ArrayList<String>>();
-        QueryResultsIterator<KeyValue> ownerEntities = stub.getStateByPartialCompositeKey(Owner.class.getSimpleName());
-
-        for (KeyValue ownerKeyValue: ownerEntities) {
-            Owner owner = genson.deserialize(ownerKeyValue.getStringValue(),Owner.class);
-            resultMapping.put(owner.getOwnerID() , owner.getIDsOfOwnedAssets());
-        }       
-        final String response = genson.serialize(resultMapping);       
-        return response; 
-    }
+    public String ViewDB(final EntityContext ctx) {
+        EntityManager manager = ctx.getEntityManager();
+        return manager.viewDB();
+    }   
 }
-

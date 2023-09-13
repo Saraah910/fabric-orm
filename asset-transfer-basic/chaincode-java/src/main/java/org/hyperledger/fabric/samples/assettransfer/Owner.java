@@ -4,21 +4,19 @@
 package org.hyperledger.fabric.samples.assettransfer;
 
 import java.util.ArrayList;
-import java.util.Objects;
-import com.owlike.genson.Genson;
+
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
+
 import com.owlike.genson.annotation.JsonProperty;
-import org.hyperledger.fabric.contract.Context;
+
 
 @DataType()
 public final class Owner{
-    private final Genson genson = new Genson();
-    
-    transient public EntityManager entityManager;
 
-    public void setEntityManager(EntityManager entityManager) {
-        this.entityManager = entityManager;
+    private EntityManager manager;
+    public void setEntityManager(EntityManager manager) {
+        this.manager = manager;
     }
 
     @Property()
@@ -31,97 +29,71 @@ public final class Owner{
     private String lastName;
 
     @Property()
-    private ArrayList<String> OwnedAssetIDs;
+    private ArrayList<String> OwnedAssetIDCollection;
 
     @Property()
-    private ArrayList<Asset> ownedAssets = null;
+    private ArrayList<Asset> ownedAssets;
 
-    private ArrayList<Asset> OwnedAssetList = new ArrayList<Asset>();
+    private ArrayList<Asset> OwnedAssetList = new ArrayList<>();
 
+    @JsonProperty("ownerID")
     public String getOwnerID() {
-        return ownerID;
+        return this.ownerID;
     }
 
-    public String getName() {
-        return name;
+    public void setName(String newName) {
+        this.name = newName;
     }
 
-    public String getLastName() {
-        return lastName;
+    public void addAssetID(String assetID) {
+        this.OwnedAssetIDCollection.add(assetID);
     }
 
-    public ArrayList<String> getIDsOfOwnedAssets() {
-        return OwnedAssetIDs;
+    public void removeAssetID(String assetID) {
+        this.OwnedAssetIDCollection.remove(assetID);
     }
 
-    public void setOwnerID(String ownerID) {
-        this.ownerID = ownerID;
-    }
-
-    public void addAssetIDs (final String assetID) {
-        this.OwnedAssetIDs.add(assetID);
-    }
-    
-    public void RemoveAssetID(final String assetID) {
-        this.OwnedAssetIDs.remove(assetID);        
-    }
-    
-    public ArrayList<Asset> getOwnedAssetsOfOwner() {      
+    public ArrayList<Asset> fetchAssetCollection() {
         if (ownedAssets == null) {
-            for (String assetID : OwnedAssetIDs) {
-                Asset asset = entityManager.loadAssetFromLedger(assetID);
+            for (String assetID: OwnedAssetIDCollection) {
+                Asset asset = manager.loadAsset(assetID);
                 OwnedAssetList.add(asset);
             }
-        }      
-        return OwnedAssetList;        
+        }
+        return OwnedAssetList;
+    }
+    @JsonProperty("name")
+    public String getName() {
+        return this.name;
     }
 
-    public Owner(final String ownerID, final String name, final String lastName) {
-        this.ownerID = ownerID;
-        this.name = name;
-        this.lastName = lastName;
-        this.OwnedAssetIDs = new ArrayList<String>();
-        this.ownedAssets = null;
+    @JsonProperty("lastName")
+    public String getLastName() {
+        return this.lastName;
+    }
+
+    @JsonProperty("OwnedAssetIDCollection")
+    public ArrayList<String> getMyAssetIDCollection() {
+        return this.OwnedAssetIDCollection;
+    }
+
+    @JsonProperty("OwnedAssetIDCollection")
+    public void setMyAssetIDCollection(ArrayList<String> OwnedAssetIDCollection) {
+        this.OwnedAssetIDCollection = OwnedAssetIDCollection;
+    }
+
+    @JsonProperty("AssetsCollection")
+    public ArrayList<Asset> getAssetCollection() {
+        return null;
     }
 
     public Owner(@JsonProperty("ownerID") final String ownerID, @JsonProperty("name") final String name,
-                @JsonProperty("lastName") final String lastName, @JsonProperty("iDsOfOwnedAssets") ArrayList<String> OwnedAssetIDs,
-                @JsonProperty("ownedAssets") ArrayList<Asset> ownedAssets) {
-        this.ownerID = ownerID;  
-        this.name = name;  
+                @JsonProperty("lastName") final String lastName) {
+        this.ownerID = ownerID;
+        this.name = name;
         this.lastName = lastName;
-        this.OwnedAssetIDs = OwnedAssetIDs; 
-        this.ownedAssets = null;         
+        this.OwnedAssetIDCollection = new ArrayList<String>();
+        this.ownedAssets = null;
     }
-
-    @Override
-    public boolean equals(final Object obj) {
-        if (this == obj) {
-            return true;
-        }
-
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-
-        Owner other = (Owner) obj;
-
-        return Objects.deepEquals(
-                new String[] {getOwnerID(), getName(), getLastName()},
-                new String[] {other.getOwnerID(), other.getName(), other.getLastName()});
-                    
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(getOwnerID(), getName(), getLastName());
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + "@" + Integer.toHexString(hashCode()) + " [ownerID=" + ownerID + ", name="
-                + name + ", lastName=" + lastName + ", OwnedAssetIDs= "+ OwnedAssetIDs + ", OwnedAssets= "+ null +"]";
-    }
-
 
 }

@@ -88,23 +88,23 @@ public final class AssetTransfer implements ContractInterface {
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String ReadOwner(final EntityContext ctx, final String ownerID) {
+    public Owner ReadOwner(final EntityContext ctx, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();
         if (!manager.OwnerExists(ownerID)) {
             throw new ChaincodeException("OWNER DOES NOT EXISTS");
         }
         Owner owner = manager.loadOwner(ownerID);
-        return genson.serialize(owner);
+        return owner;
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE) 
-    public String ReadAsset(final EntityContext ctx, final String assetID) {
+    public Asset ReadAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();        
         if (!manager.AssetExists(assetID)) {
             throw new ChaincodeException("ASSET DOES NOT EXIXTS");
         }
         Asset asset = manager.loadAsset(assetID);
-        return genson.serialize(asset);
+        return asset;
     }
 
     @Transaction(intent = Transaction.TYPE.SUBMIT)

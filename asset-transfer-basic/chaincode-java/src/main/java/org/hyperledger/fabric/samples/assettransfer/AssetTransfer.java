@@ -88,36 +88,36 @@ public final class AssetTransfer implements ContractInterface {
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String ReadOwner(final EntityContext ctx, final String ownerID) {
+    public Owner ReadOwner(final EntityContext ctx, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();
-        if (!manager.OwnerExists(ownerID)) {
-            throw new ChaincodeException("OWNER DOES NOT EXISTS");
-        }
+        // if (!manager.OwnerExists(ownerID)) {
+        //     throw new ChaincodeException("OWNER DOES NOT EXISTS");
+        // }
         Owner owner = manager.loadOwner(ownerID);
-        return genson.serialize(owner);
+        return owner;
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE) 
-    public String ReadAsset(final EntityContext ctx, final String assetID) {
+    public Asset ReadAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();        
-        if (!manager.AssetExists(assetID)) {
-            throw new ChaincodeException("ASSET DOES NOT EXIXTS");
-        }
+        // if (!manager.AssetExists(assetID)) {
+        //     throw new ChaincodeException("ASSET DOES NOT EXIXTS");
+        // }
         Asset asset = manager.loadAsset(assetID);
-        return genson.serialize(asset);
+        return asset;
     }
 
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public String TransferAsset(final EntityContext ctx, final String assetID, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();
-        if (!manager.AssetExists(assetID)) {
-            throw new ChaincodeException("ASSET DOES NOT EXISTS");
-        }
-        if (!manager.OwnerExists(ownerID)) {
-            throw new ChaincodeException("OWNER DOES NOT EXISTS");
-        }
+        // if (!manager.AssetExists(assetID)) {
+        //     throw new ChaincodeException("ASSET DOES NOT EXISTS");
+        // }
+        // if (!manager.OwnerExists(ownerID)) {
+        //     throw new ChaincodeException("OWNER DOES NOT EXISTS");
+        // }
         if (manager.AlreadyOwnedAsset(assetID, ownerID)) {
-            throw new ChaincodeException("OWNER ALREADY OWNES ASSET %S ",assetID);
+            throw new ChaincodeException("OWNER ALREADY OWNES ASSET",assetID);
         }
 
         Asset asset = manager.loadAsset(assetID);
@@ -141,6 +141,8 @@ public final class AssetTransfer implements ContractInterface {
         if (!asset.getOwnerID().equals(ownerID)) {
             throw new ChaincodeException("OWNERSHIP CANNOT BE TRANSFRRED");
         }
+        Owner owner = asset.getOwner();
+        asset.addPropertyChangeListner(owner::handleAssetUpdate);
         asset.setAssetID(assetID);
         asset.setColor(color);
         asset.setSize(size);
@@ -165,7 +167,7 @@ public final class AssetTransfer implements ContractInterface {
             throw new ChaincodeException("OWNER DOES NOT EXISTS");
         }
         Owner owner = manager.loadOwner(ownerID);
-        String res = genson.serialize(owner.fetchAssetCollection());
+        String res = genson.serialize(owner.grabAssetCollection());
         Asset[] response = genson.deserialize(res,Asset[].class);
         return response;
     }

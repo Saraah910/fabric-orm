@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.hyperledger.fabric.shim.ChaincodeException;
 import org.hyperledger.fabric.shim.ChaincodeStub;
 import org.hyperledger.fabric.shim.ledger.CompositeKey;
 import org.hyperledger.fabric.shim.ledger.KeyValue;
@@ -15,11 +16,15 @@ public class EntityManager {
     Genson genson = new Genson();
     ChaincodeStub stub;
 
+    Map<String, Asset> assetCache = new HashMap<>();
+    Map<String, Owner> ownerCache = new HashMap<>();
+
     public void saveAsset(Asset asset) {
         asset.setEntityManager(this);
         CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(), asset.getAssetID());
         String assetJSON = genson.serialize(asset);
         stub.putStringState(assetKey.toString(), assetJSON);
+        assetCache.put(asset.getAssetID(), asset);
     }
 
     public void saveOwner(Owner owner) {
@@ -27,19 +32,37 @@ public class EntityManager {
         CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(), owner.getOwnerID());
         String ownerJSON = genson.serialize(owner);
         stub.putStringState(ownerKey.toString(), ownerJSON);
+        ownerCache.put(owner.getOwnerID(),owner);
     }
 
     public Asset loadAsset(String assetID) {
+        if (assetCache.containsKey(assetID)) {
+            Asset asset = assetCache.get(assetID);
+            asset.setEntityManager(this);
+            return asset;
+        }
         CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(), assetID);
         String assetJSON = stub.getStringState(assetKey.toString());
+        if (assetJSON.isEmpty()) {
+            throw new ChaincodeException("ASSET DOES NOT EXIST");
+        }
         Asset asset = genson.deserialize(assetJSON,Asset.class);
         asset.setEntityManager(this);
         return asset;
     }
 
     public Owner loadOwner(String ownerID) {
+        if (ownerCache.containsKey(ownerID)) {
+            Owner owner = ownerCache.get(ownerID);
+            owner.setEntityManager(this);
+            return owner;
+        }
         CompositeKey ownerKey = stub.createCompositeKey(Owner.class.getSimpleName(), ownerID);
         String ownerJSON = stub.getStringState(ownerKey.toString());
+        
+        if (ownerJSON.isEmpty()) {
+            throw new ChaincodeException("OWNER DOES NOT EXISTS");
+        }
         Owner owner = genson.deserialize(ownerJSON,Owner.class);
         owner.setEntityManager(this);
         return owner;

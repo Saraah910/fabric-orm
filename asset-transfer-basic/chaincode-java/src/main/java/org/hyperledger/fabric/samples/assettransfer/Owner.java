@@ -40,11 +40,6 @@ public final class Owner{
 
     private ArrayList<Asset> OwnedAssetList = new ArrayList<>();
 
-    @JsonProperty("ownerID")
-    public String getOwnerID() {
-        return this.ownerID;
-    }
-
     public void setName(String newName) {
         this.name = newName;
         propertyChangeSupport.firePropertyChange("name",null,this.name);
@@ -57,21 +52,31 @@ public final class Owner{
 
     public void addAssetID(String assetID) {
         this.OwnedAssetIDCollection.add(assetID);
+        propertyChangeSupport.firePropertyChange("OwnedAssetIDCollection", null, assetID);
     }
 
     public void removeAssetID(String assetID) {
         this.OwnedAssetIDCollection.remove(assetID);
+        propertyChangeSupport.firePropertyChange("OwnedAssetIDCollection", null, assetID);
     }
 
-    public ArrayList<Asset> grabAssetCollection() {
+    public ArrayList<Asset> gettOwnedAssets() {
         if (ownedAssets == null) {
+            OwnedAssetList.clear();
             for (String assetID: OwnedAssetIDCollection) {
                 Asset asset = manager.loadAsset(assetID);
                 OwnedAssetList.add(asset);
             }
+            ownedAssets = OwnedAssetList;
         }
-        return OwnedAssetList;
+        return ownedAssets;
     }
+
+    @JsonProperty("ownerID")
+    public String getOwnerID() {
+        return this.ownerID;
+    }
+
     @JsonProperty("name")
     public String getName() {
         return this.name;
@@ -92,7 +97,7 @@ public final class Owner{
         this.OwnedAssetIDCollection = OwnedAssetIDCollection;
     }
 
-    @JsonProperty("AssetsCollection")
+    @JsonProperty("ownedAssets")
     public ArrayList<Asset> fetchAssetCollection() {
         return null;
     }
@@ -111,6 +116,14 @@ public final class Owner{
         System.out.println("Changed Value: " + event.getNewValue());
         System.out.println("-------------------");
     }
+    public void handleCollectionChange(PropertyChangeEvent event) {
+        System.out.println("-----------------------------------------------------------");
+        System.out.println("Owner " + name + " " + lastName + " received notification:");
+        System.out.println("Property updated :" + event.getPropertyName());
+        System.out.println("Changed Value: " + event.getNewValue());
+        System.out.println("-----------------------------------------------------------");
+    }
+
     public Owner(@JsonProperty("ownerID") final String ownerID, @JsonProperty("name") final String name,
                 @JsonProperty("lastName") final String lastName) {
         this.ownerID = ownerID;

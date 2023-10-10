@@ -44,8 +44,7 @@ public final class AssetTransfer implements ContractInterface {
     @Override
     public Context createContext(final ChaincodeStub stub) {
         return new EntityContext(stub, new EntityManager(stub));
-    }
-    
+    }    
     /**
      * @param ctx 
      */
@@ -53,8 +52,7 @@ public final class AssetTransfer implements ContractInterface {
     public void InitLedger(final EntityContext ctx) {
         EntityManager manager = ctx.getEntityManager();
         Owner owner = new Owner("Sakshi1", "Sakshi", "Aherkar");
-        manager.saveOwner(owner);
-
+        manager.save(owner);
     }
 
     @Transaction(intent = Transaction.TYPE.SUBMIT)
@@ -62,17 +60,10 @@ public final class AssetTransfer implements ContractInterface {
                         final String ownerID, final int appraisedValue) {
         EntityManager manager = ctx.getEntityManager();
         if (manager.AssetExists(assetID)) {
-            throw new ChaincodeException("ASSET ALREADY EXISTS");
-        }
-        if (!manager.OwnerExists(ownerID)) {
-            throw new ChaincodeException("OWNER DOES NOT EXISTS");
+            throw new ChaincodeException("ASSET ALREADY EXISTS",assetID);
         }
         Asset asset = new Asset(assetID, color, size, ownerID, appraisedValue);
-        manager.saveAsset(asset);
-
-        Owner owner = manager.loadOwner(ownerID);
-        owner.addAssetID(assetID);
-        manager.saveOwner(owner);
+        manager.save(asset);    
         return asset;
     }
 
@@ -83,16 +74,13 @@ public final class AssetTransfer implements ContractInterface {
             throw new ChaincodeException("OWNER ALREADY EXISTS");
         }
         Owner owner = new Owner(ownerID, name, lastName);
-        manager.saveOwner(owner);
+        manager.save(owner);
         return owner;
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public Owner ReadOwner(final EntityContext ctx, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();
-        // if (!manager.OwnerExists(ownerID)) {
-        //     throw new ChaincodeException("OWNER DOES NOT EXISTS");
-        // }
         Owner owner = manager.loadOwner(ownerID);
         return owner;
     }
@@ -100,9 +88,6 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.EVALUATE) 
     public Asset ReadAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();        
-        // if (!manager.AssetExists(assetID)) {
-        //     throw new ChaincodeException("ASSET DOES NOT EXIXTS");
-        // }
         Asset asset = manager.loadAsset(assetID);
         return asset;
     }
@@ -110,45 +95,30 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.SUBMIT)
     public String TransferAsset(final EntityContext ctx, final String assetID, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();
-        // if (!manager.AssetExists(assetID)) {
-        //     throw new ChaincodeException("ASSET DOES NOT EXISTS");
-        // }
-        // if (!manager.OwnerExists(ownerID)) {
-        //     throw new ChaincodeException("OWNER DOES NOT EXISTS");
-        // }
-        if (manager.AlreadyOwnedAsset(assetID, ownerID)) {
-            throw new ChaincodeException("OWNER ALREADY OWNES ASSET",assetID);
-        }
-
-        Asset asset = manager.loadAsset(assetID);
-        Owner owner = manager.loadOwner(ownerID);
-        asset.setOwner(owner);
-
-        return "OWNERSHIP TRANSFRRED";
+        try {
+            Asset asset = manager.loadAsset(assetID);
+            Owner owner = manager.loadOwner(ownerID);
+            asset.setOwner(owner);
+            // manager.Finalize();
+            return "ASSET TRANSFRRED";
+        } catch (Exception error) {
+            return error.toString();
+        }        
     }
 
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String UpdateAsset(final EntityContext ctx, final String assetID, final String color, final int size,
+    public void UpdateAsset(final EntityContext ctx, final String assetID, final String color, final int size,
                         final String ownerID, final int appraisedValue) {
         EntityManager manager = ctx.getEntityManager();
-        if (!manager.OwnerExists(ownerID)) {
-            throw new ChaincodeException("OWNER DOES NOT EXISTS");
-        }
-        if (!manager.AssetExists(assetID)) {
-            throw new ChaincodeException("ASSET DOES NOT EXIST");
-        }
         Asset asset = manager.loadAsset(assetID);
         if (!asset.getOwnerID().equals(ownerID)) {
             throw new ChaincodeException("OWNERSHIP CANNOT BE TRANSFRRED");
         }
-        Owner owner = asset.getOwner();
-        asset.addPropertyChangeListner(owner::handleAssetUpdate);
         asset.setAssetID(assetID);
         asset.setColor(color);
         asset.setSize(size);
         asset.setAppraisedValue(appraisedValue);
-        manager.saveAsset(asset);
-        return "ASSET UPDATED";
+        manager.save(asset);  
     }
 
     @Transaction(intent = Transaction.TYPE.SUBMIT) 
@@ -163,11 +133,8 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public Asset[] GetAssetsOfOwner(final EntityContext ctx, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();
-        if (!manager.OwnerExists(ownerID)) {
-            throw new ChaincodeException("OWNER DOES NOT EXISTS");
-        }
         Owner owner = manager.loadOwner(ownerID);
-        String res = genson.serialize(owner.grabAssetCollection());
+        String res = genson.serialize(owner.gettOwnedAssets());
         Asset[] response = genson.deserialize(res,Asset[].class);
         return response;
     }
@@ -175,9 +142,6 @@ public final class AssetTransfer implements ContractInterface {
     @Transaction(intent = Transaction.TYPE.EVALUATE)
     public Owner GetOwnerOfAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();
-        if (!manager.AssetExists(assetID)) {
-            throw new ChaincodeException("ASSET DOES NOT EXISTS");
-        }
         Asset asset = manager.loadAsset(assetID);
         return asset.getOwner();
     }

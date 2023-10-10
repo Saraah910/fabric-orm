@@ -41,34 +41,38 @@ public class Asset {
         String oldValue = this.assetID;
         this.assetID = assetID;
         propertyChangeSupport.firePropertyChange("assetID", oldValue, this.assetID);
+        manager.addUpdatedAsset(this);
     }
 
     public void setColor(String color) {
         String oldValue = this.color;
         this.color = color;
         propertyChangeSupport.firePropertyChange("color", oldValue, this.color);
+        manager.addUpdatedAsset(this);
     }
 
     public void setSize(int size) {
         int oldValue = this.size;
         this.size = size;
         propertyChangeSupport.firePropertyChange("size", oldValue, this.size);
+        manager.addUpdatedAsset(this);
     }
 
     public void setAppraisedValue(int appraisedValue) {
         int oldValue = this.appraisedValue;
         this.appraisedValue = appraisedValue;
         propertyChangeSupport.firePropertyChange("AppraisedValue", oldValue, this.appraisedValue);
+        manager.addUpdatedAsset(this);
     }
     public void setOwner(Owner newOwner) {
-        if (ownerID != null && manager != null) {
+        if (ownerID != null && manager != null && !manager.AlreadyOwnedAsset(assetID, newOwner.getOwnerID())) {
             Owner oldOwner = manager.loadOwner(ownerID);
             oldOwner.removeAssetID(assetID);
-            manager.saveOwner(oldOwner);
+            manager.save(oldOwner);
             this.ownerID = newOwner.getOwnerID();
-            manager.saveAsset(this);
+            manager.save(this);
             newOwner.addAssetID(assetID);
-            manager.saveOwner(newOwner);            
+            manager.save(newOwner);            
         }
     }
 

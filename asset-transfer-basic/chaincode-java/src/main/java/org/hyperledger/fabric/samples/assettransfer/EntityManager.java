@@ -39,7 +39,7 @@ public final class EntityManager {
             Owner owner = loadOwner(ownerID);
             ArrayList<String> ownedAssetIDList = owner.getMyAssetIDCollection();
             if (!ownedAssetIDList.contains(getObjectID(obj))) {
-                owner.addAssetID(getObjectID(obj));
+                owner.addAsset((Asset) obj);
             }
             save(owner);
         } else if (obj.getClass() == Owner.class) {
@@ -90,7 +90,6 @@ public final class EntityManager {
         }
         Owner owner = genson.deserialize(ownerJSON,Owner.class);
         owner.setEntityManager(this);
-        owner.addPropertyChangeListener(owner::handleCollectionChange);
         return owner;
     }
 
@@ -117,7 +116,7 @@ public final class EntityManager {
         CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(), assetID);
         Asset asset = loadAsset(assetID);
         Owner owner = loadOwner(asset.getOwnerID());
-        owner.removeAssetID(assetID);
+        owner.removeAsset(asset);
         save(owner);
         stub.delState(assetKey.toString());
     }
@@ -165,4 +164,3 @@ public final class EntityManager {
         this.ownerCache = new HashMap<>();
     }
 }
-

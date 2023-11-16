@@ -79,17 +79,17 @@ public final class AssetTransfer implements ContractInterface {
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public Owner ReadOwner(final EntityContext ctx, final String ownerID) {
+    public String ReadOwner(final EntityContext ctx, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();
         Owner owner = manager.loadOwner(ownerID);
-        return owner;
+        return genson.serialize(owner);
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE) 
-    public Asset ReadAsset(final EntityContext ctx, final String assetID) {
+    public String ReadAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();        
         Asset asset = manager.loadAsset(assetID);
-        return asset;
+        return genson.serialize(asset);
     }
 
     @Transaction(intent = Transaction.TYPE.SUBMIT)
@@ -134,7 +134,7 @@ public final class AssetTransfer implements ContractInterface {
     public Asset[] GetAssetsOfOwner(final EntityContext ctx, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();
         Owner owner = manager.loadOwner(ownerID);
-        String res = genson.serialize(owner.gettOwnedAssets());
+        String res = genson.serialize(owner.GetOwnedAssets());
         Asset[] response = genson.deserialize(res,Asset[].class);
         return response;
     }

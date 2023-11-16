@@ -13,6 +13,10 @@ import org.hyperledger.fabric.contract.annotation.Property;
 
 import com.owlike.genson.annotation.JsonProperty;
 
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+
 
 @DataType()
 public final class Owner{
@@ -33,12 +37,10 @@ public final class Owner{
     private String lastName;
 
     @Property()
-    private ArrayList<String> OwnedAssetIDCollection;
+    private ArrayList<String> ownedAssetIDs;
 
     @Property()
-    private ArrayList<Asset> ownedAssets;
-
-    private ArrayList<Asset> OwnedAssetList = new ArrayList<>();
+    private ObservableList<Asset> ownedAssets;
 
     public void setName(String newName) {
         this.name = newName;
@@ -50,26 +52,33 @@ public final class Owner{
         propertyChangeSupport.firePropertyChange("lastName", null, this.lastName);
     }
 
-    public void addAssetID(String assetID) {
-        this.OwnedAssetIDCollection.add(assetID);
+    public void addAsset(Asset asset) {
+        addAssetID(asset.getAssetID());
+    }
+
+    public void removeAsset(Asset asset) {
+        removeAssetID(asset.getAssetID());
+    }
+
+    private void addAssetID(String assetID) {
+        this.ownedAssetIDs.add(assetID);
         propertyChangeSupport.firePropertyChange("OwnedAssetIDCollection", null, assetID);
     }
 
-    public void removeAssetID(String assetID) {
-        this.OwnedAssetIDCollection.remove(assetID);
+    private void removeAssetID(String assetID) {
+        this.ownedAssetIDs.remove(assetID);
         propertyChangeSupport.firePropertyChange("OwnedAssetIDCollection", null, assetID);
     }
 
-    public ArrayList<Asset> gettOwnedAssets() {
-        if (ownedAssets == null) {
-            OwnedAssetList.clear();
-            for (String assetID: OwnedAssetIDCollection) {
+    public ObservableList<Asset> GetOwnedAssets() {
+        ObservableList<Asset> OwnedAssetList = FXCollections.observableArrayList();
+            
+            System.out.println("populating assets");
+            for (String assetID: ownedAssetIDs) {
                 Asset asset = manager.loadAsset(assetID);
                 OwnedAssetList.add(asset);
-            }
-            ownedAssets = OwnedAssetList;
-        }
-        return ownedAssets;
+            }        
+        return OwnedAssetList;
     }
 
     @JsonProperty("ownerID")
@@ -89,17 +98,12 @@ public final class Owner{
 
     @JsonProperty("OwnedAssetIDCollection")
     public ArrayList<String> getMyAssetIDCollection() {
-        return this.OwnedAssetIDCollection;
+        return this.ownedAssetIDs;
     }
 
     @JsonProperty("OwnedAssetIDCollection")
     public void setMyAssetIDCollection(ArrayList<String> OwnedAssetIDCollection) {
-        this.OwnedAssetIDCollection = OwnedAssetIDCollection;
-    }
-
-    @JsonProperty("ownedAssets")
-    public ArrayList<Asset> fetchAssetCollection() {
-        return null;
+        this.ownedAssetIDs = OwnedAssetIDCollection;
     }
 
     public void addPropertyChangeListener(PropertyChangeListener listener) {
@@ -116,22 +120,43 @@ public final class Owner{
         System.out.println("Changed Value: " + event.getNewValue());
         System.out.println("-------------------");
     }
-    public void handleCollectionChange(PropertyChangeEvent event) {
-        System.out.println("-----------------------------------------------------------");
-        System.out.println("Owner " + name + " " + lastName + " received notification:");
-        System.out.println("Property updated :" + event.getPropertyName());
-        System.out.println("Changed Value: " + event.getNewValue());
-        System.out.println("-----------------------------------------------------------");
+    
+    private void initiateChange() {
+        ownedAssets.addListener(new ListChangeListener<Asset>() {
+        @Override
+        public void onChanged(Change<? extends Asset> change) {
+            while (change.next()) {
+                if (change.wasAdded()) {
+                    for (Asset asset : change.getAddedSubList()) {
+                        System.out.println("Adding assetID: " + asset.getAssetID());
+                        addAssetID(asset.getAssetID());
+                    }
+                } else if (change.wasRemoved()) {
+                    for (Asset asset : change.getRemoved()) {
+                        System.out.println("Removing assetID: " + asset.getAssetID());
+                        removeAssetID(asset.getAssetID());
+                    }
+                }
+            }
+        }});
     }
 
-    public Owner(@JsonProperty("ownerID") final String ownerID, @JsonProperty("name") final String name,
-                @JsonProperty("lastName") final String lastName) {
+    public Owner(String ownerID, String name, String lastName) {
         this.ownerID = ownerID;
         this.name = name;
         this.lastName = lastName;
-        this.OwnedAssetIDCollection = new ArrayList<String>();
+        this.ownedAssetIDs = new ArrayList<>();
         this.ownedAssets = null;
+    }
+
+    public Owner(@JsonProperty("ownerID") final String ownerID, @JsonProperty("name") final String name,
+                @JsonProperty("lastName") final String lastName, @JsonProperty("ownedAssets") final ObservableList<Asset> ownedAssets) {
+        this.ownerID = ownerID;
+        this.name = name;
+        this.lastName = lastName;
+        this.ownedAssets = FXCollections.observableArrayList();
         this.propertyChangeSupport = new PropertyChangeSupport(this);
+        initiateChange();
     }
 
 }

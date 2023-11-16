@@ -9,6 +9,7 @@ import java.beans.PropertyChangeSupport;
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.contract.annotation.Property;
 
+import com.owlike.genson.annotation.JsonIgnore;
 import com.owlike.genson.annotation.JsonProperty;
 
 @DataType()
@@ -35,43 +36,39 @@ public class Asset {
     @Property()
     private int appraisedValue;
 
-    private Owner owner = null;
+    private transient Owner owner = null;
 
     public void setAssetID(String assetID) {
         String oldValue = this.assetID;
         this.assetID = assetID;
         propertyChangeSupport.firePropertyChange("assetID", oldValue, this.assetID);
-        manager.addUpdatedAsset(this);
     }
 
     public void setColor(String color) {
         String oldValue = this.color;
         this.color = color;
         propertyChangeSupport.firePropertyChange("color", oldValue, this.color);
-        manager.addUpdatedAsset(this);
     }
 
     public void setSize(int size) {
         int oldValue = this.size;
         this.size = size;
         propertyChangeSupport.firePropertyChange("size", oldValue, this.size);
-        manager.addUpdatedAsset(this);
     }
 
     public void setAppraisedValue(int appraisedValue) {
         int oldValue = this.appraisedValue;
         this.appraisedValue = appraisedValue;
         propertyChangeSupport.firePropertyChange("AppraisedValue", oldValue, this.appraisedValue);
-        manager.addUpdatedAsset(this);
     }
     public void setOwner(Owner newOwner) {
         if (ownerID != null && manager != null && !manager.AlreadyOwnedAsset(assetID, newOwner.getOwnerID())) {
             Owner oldOwner = manager.loadOwner(ownerID);
-            oldOwner.removeAssetID(assetID);
+            oldOwner.removeAsset(this);
             manager.save(oldOwner);
             this.ownerID = newOwner.getOwnerID();
             manager.save(this);
-            newOwner.addAssetID(assetID);
+            newOwner.addAsset(this);
             manager.save(newOwner);            
         }
     }
@@ -110,7 +107,7 @@ public class Asset {
         if (owner == null) {
             owner = manager.loadOwner(ownerID);
         }
-        return owner;
+        return owner;       
     }
 
     public void addPropertyChangeListner(PropertyChangeListener listener) {
@@ -120,6 +117,7 @@ public class Asset {
     public void removePropertyChangeListener(PropertyChangeListener listener) {
         propertyChangeSupport.removePropertyChangeListener(listener);
     }
+
     public Asset(@JsonProperty("assetID") final String assetID, @JsonProperty("color") final String color,
                  @JsonProperty("size") final int size, @JsonProperty("ownerID") final String ownerID,
                  @JsonProperty("AppraisedValue") final int appraisedValue) {

@@ -98,15 +98,10 @@ public class Asset {
         return this.appraisedValue;
     }
 
-    @JsonProperty("owner")
-    public Owner fetchOwner() {
-        return null;
-    }
-
     public Owner getOwner() {
         if (owner == null) {
             owner = manager.loadOwner(ownerID);
-        }
+        }        
         return owner;       
     }
 
@@ -126,7 +121,7 @@ public class Asset {
         this.size = size;
         this.ownerID = ownerID;
         this.appraisedValue = appraisedValue;
-        this.owner = null;
         this.propertyChangeSupport = new PropertyChangeSupport(this);
     }
 }
+

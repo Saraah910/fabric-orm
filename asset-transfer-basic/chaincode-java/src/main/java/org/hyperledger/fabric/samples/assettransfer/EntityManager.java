@@ -5,9 +5,7 @@ package org.hyperledger.fabric.samples.assettransfer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.hyperledger.fabric.contract.annotation.DataType;
 import org.hyperledger.fabric.shim.ChaincodeException;
@@ -23,13 +21,20 @@ public final class EntityManager {
     Genson genson = new Genson();
     ChaincodeStub stub;
 
+    private enum LOADING_ERRORS {
+        ASSET_NOT_FOUND,
+        OWNER_NOT_FOUND,
+        OWNER_ALREADY_OWNS_ASSET,
+        OBJECT_TYPE_NOT_SUPPORTED
+    }
+
     private Map<String, Asset> assetCache;
     private Map<String, Owner> ownerCache;
-    private static Set<Asset> updatedAssets = new HashSet<>();
+    
 
     void save(Object obj) {
         if (obj == null) {
-            throw new ChaincodeException("Invalid object or object class");
+            throw new ChaincodeException("Invalid object or object class", LOADING_ERRORS.OBJECT_TYPE_NOT_SUPPORTED.toString());
         }
         CompositeKey objectKey = stub.createCompositeKey(obj.getClass().getSimpleName(), getObjectID(obj));
         String objJSON = genson.serialize(obj);
@@ -56,7 +61,7 @@ public final class EntityManager {
             ((Owner) obj).setEntityManager(this);
             return ((Owner) obj).getOwnerID();
         }
-        throw new ChaincodeException("Unsupported object type");
+        throw new ChaincodeException("Unsupported object type", LOADING_ERRORS.OBJECT_TYPE_NOT_SUPPORTED.toString());
     }
 
     public Asset loadAsset(String assetID) {
@@ -68,7 +73,7 @@ public final class EntityManager {
         CompositeKey assetKey = stub.createCompositeKey(Asset.class.getSimpleName(), assetID);
         String assetJSON = stub.getStringState(assetKey.toString());
         if (assetJSON.isEmpty()) {
-            throw new ChaincodeException("ASSET DOES NOT EXIST", assetID);
+            throw new ChaincodeException("ASSET DOES NOT EXIST", LOADING_ERRORS.ASSET_NOT_FOUND.toString());
         }
         Asset asset = genson.deserialize(assetJSON,Asset.class);
         asset.setEntityManager(this);
@@ -86,30 +91,19 @@ public final class EntityManager {
         String ownerJSON = stub.getStringState(ownerKey.toString());
         
         if (ownerJSON.isEmpty()) {
-            throw new ChaincodeException("OWNER DOES NOT EXISTS",ownerID);
+            throw new ChaincodeException("OWNER DOES NOT EXISTS", LOADING_ERRORS.OWNER_NOT_FOUND.toString());
         }
         Owner owner = genson.deserialize(ownerJSON,Owner.class);
         owner.setEntityManager(this);
         return owner;
     }
 
-    public void addUpdatedAsset(Asset asset) {
-        updatedAssets.add(asset);
-    }
-
-    public Set<Asset> getUpdatedAssets() {
-        return updatedAssets;
-    }
-    // public void UpdateAsset(Asset asset) {       
-    //     save(asset);
-    //     EntityManager.updatedAssets.add(asset);
+    // public void addUpdatedAsset(Asset asset) {
+    //     updatedAssets.add(asset);
     // }
 
-    // public void Finalize() {
-    //     for(Asset asset : EntityManager.updatedAssets) {
-    //         save(asset);
-    //     }
-    //     updatedAssets.clear();
+    // public Set<Asset> getUpdatedAssets() {
+    //     return updatedAssets;
     // }
 
     public void deleteAsset(String assetID) {
@@ -153,7 +147,7 @@ public final class EntityManager {
         Owner owner = loadOwner(newOwnerID);
         ArrayList<String> ownedAssetIDs = owner.getMyAssetIDCollection();
         if (ownedAssetIDs.contains(assetID)) {
-            throw new ChaincodeException("OWNER ALREADY OWNS ASSET", assetID);
+            throw new ChaincodeException("OWNER ALREADY OWNS ASSET", LOADING_ERRORS.OWNER_ALREADY_OWNS_ASSET.toString());
         }
         return ownedAssetIDs.contains(assetID);    
     }
@@ -164,3 +158,4 @@ public final class EntityManager {
         this.ownerCache = new HashMap<>();
     }
 }
+

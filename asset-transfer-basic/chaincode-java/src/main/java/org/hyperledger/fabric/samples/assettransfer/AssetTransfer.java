@@ -38,7 +38,8 @@ public final class AssetTransfer implements ContractInterface {
         ASSET_NOT_FOUND,
         ASSET_ALREADY_EXISTS,
         OWNER_NOT_FOUND,
-        OWNER_ALREADY_EXISTS
+        OWNER_ALREADY_EXISTS,
+        OWNERSHHIP_CANNOT_TRANSFER
     }
 
     @Override
@@ -60,7 +61,7 @@ public final class AssetTransfer implements ContractInterface {
                         final String ownerID, final int appraisedValue) {
         EntityManager manager = ctx.getEntityManager();
         if (manager.AssetExists(assetID)) {
-            throw new ChaincodeException("ASSET ALREADY EXISTS",assetID);
+            throw new ChaincodeException("ASSET ALREADY EXISTS", AssetTransferErrors.ASSET_ALREADY_EXISTS.toString());
         }
         Asset asset = new Asset(assetID, color, size, ownerID, appraisedValue);
         manager.save(asset);    
@@ -71,7 +72,7 @@ public final class AssetTransfer implements ContractInterface {
     public Owner CreateOwner(final EntityContext ctx, final String ownerID, final String name, final String lastName) {
         EntityManager manager = ctx.getEntityManager();
         if (manager.OwnerExists(ownerID)) {
-            throw new ChaincodeException("OWNER ALREADY EXISTS");
+            throw new ChaincodeException("OWNER ALREADY EXISTS", AssetTransferErrors.OWNER_ALREADY_EXISTS.toString());
         }
         Owner owner = new Owner(ownerID, name, lastName);
         manager.save(owner);
@@ -79,30 +80,29 @@ public final class AssetTransfer implements ContractInterface {
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE)
-    public String ReadOwner(final EntityContext ctx, final String ownerID) {
+    public Owner ReadOwner(final EntityContext ctx, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();
         Owner owner = manager.loadOwner(ownerID);
-        return genson.serialize(owner);
+        return owner;
     }
 
     @Transaction(intent = Transaction.TYPE.EVALUATE) 
-    public String ReadAsset(final EntityContext ctx, final String assetID) {
+    public Asset ReadAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();        
         Asset asset = manager.loadAsset(assetID);
-        return genson.serialize(asset);
+        return asset;
     }
 
     @Transaction(intent = Transaction.TYPE.SUBMIT)
-    public String TransferAsset(final EntityContext ctx, final String assetID, final String ownerID) {
+    public void TransferAsset(final EntityContext ctx, final String assetID, final String ownerID) {
         EntityManager manager = ctx.getEntityManager();
         try {
             Asset asset = manager.loadAsset(assetID);
             Owner owner = manager.loadOwner(ownerID);
             asset.setOwner(owner);
-            // manager.Finalize();
-            return "ASSET TRANSFRRED";
+            
         } catch (Exception error) {
-            return error.toString();
+            System.out.println(error);
         }        
     }
 
@@ -112,7 +112,7 @@ public final class AssetTransfer implements ContractInterface {
         EntityManager manager = ctx.getEntityManager();
         Asset asset = manager.loadAsset(assetID);
         if (!asset.getOwnerID().equals(ownerID)) {
-            throw new ChaincodeException("OWNERSHIP CANNOT BE TRANSFRRED");
+            throw new ChaincodeException("OWNERSHIP CANNOT BE TRANSFRRED", AssetTransferErrors.OWNERSHHIP_CANNOT_TRANSFER.toString());
         }
         asset.setAssetID(assetID);
         asset.setColor(color);
@@ -125,7 +125,7 @@ public final class AssetTransfer implements ContractInterface {
     public void DeleteAsset(final EntityContext ctx, final String assetID) {
         EntityManager manager = ctx.getEntityManager();
         if (!manager.AssetExists(assetID)) {
-            throw new ChaincodeException("ASSET DOES NOT EXIST");
+            throw new ChaincodeException("ASSET DOES NOT EXIST", AssetTransferErrors.ASSET_NOT_FOUND.toString());
         }
         manager.deleteAsset(assetID);
     }
@@ -152,3 +152,4 @@ public final class AssetTransfer implements ContractInterface {
         return manager.viewDB();
     }   
 }
+
